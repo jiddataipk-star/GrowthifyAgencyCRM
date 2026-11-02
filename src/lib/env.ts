@@ -34,7 +34,7 @@ export const serverEnv = {
     appId: process.env.META_APP_ID,
     appSecret: process.env.META_APP_SECRET,
     redirectUri: process.env.META_REDIRECT_URI ?? `${publicEnv.siteUrl()}/api/integrations/meta/callback`,
-    graphVersion: process.env.META_GRAPH_VERSION || "v24.0",
+    graphVersion: process.env.META_GRAPH_VERSION || "v26.0",
   }),
   threads: () => ({
     appId: process.env.THREADS_APP_ID,

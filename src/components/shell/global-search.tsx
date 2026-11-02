@@ -17,7 +17,7 @@ const KIND = {
 } as const;
 
 /** Pill search in the top bar; opens a command palette (also on Ctrl/⌘ K). */
-export function GlobalSearch({ className, finance }: { className?: string; finance: boolean }) {
+export function GlobalSearch({ className, finance, shortcut = false }: { className?: string; finance: boolean; shortcut?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
@@ -25,6 +25,7 @@ export function GlobalSearch({ className, finance }: { className?: string; finan
   const [loading, setLoading] = React.useState(false);
 
   React.useEffect(() => {
+    if (!shortcut) return;
     const onKey = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
@@ -33,7 +34,7 @@ export function GlobalSearch({ className, finance }: { className?: string; finan
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [shortcut]);
 
   React.useEffect(() => {
     const q = query.trim();

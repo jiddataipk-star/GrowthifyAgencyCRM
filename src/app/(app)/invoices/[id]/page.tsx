@@ -93,7 +93,7 @@ async function InvoiceDetail({ params }: Props) {
 
       <div className="grid grid-cols-1 gap-7 xl:grid-cols-[1.6fr_1fr]">
         {/* On-screen preview (the PDF uses the same structure) */}
-        <Card className="overflow-hidden p-0">
+        <Card className="overflow-hidden p-0 sm:p-0">
           <div className="flex items-start justify-between gap-4 bg-sidebar px-6 py-6 sm:px-8 light:bg-[#06140e]">
             <div>
               <p className="text-xs font-bold tracking-[0.16em] text-[#c8ff40] uppercase">Invoice</p>

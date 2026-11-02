@@ -99,13 +99,15 @@ export function TasksCard({ projectId, tasks, team, today }: { projectId: string
         <p className="text-card font-bold">Tasks</p>
         <span className="text-sm font-semibold text-muted">{optimistic.length ? `${done} of ${optimistic.length} done` : "No tasks"}</span>
       </div>
-      <form onSubmit={add} className="mb-4 grid grid-cols-1 gap-2.5 sm:grid-cols-[1fr_150px_150px_auto]">
+      <form onSubmit={add} className="mb-4 space-y-2.5">
         <Input aria-label="New task" placeholder="Add a task…" className="h-11" {...register("title")} />
-        <Select aria-label="Assignee" placeholder="Unassigned" options={team.map((m) => ({ value: m.id, label: m.name }))} className="h-11" {...register("assignee_id")} />
-        <Input aria-label="Due date" type="date" className="h-11" {...register("due_date")} />
-        <Button type="submit" size="md" loading={formState.isSubmitting} aria-label="Add task">
-          <Plus />
-        </Button>
+        <div className="grid grid-cols-[1fr_1fr_auto] gap-2.5">
+          <Select aria-label="Assignee" placeholder="Unassigned" options={team.map((m) => ({ value: m.id, label: m.name }))} className="h-11" {...register("assignee_id")} />
+          <Input aria-label="Due date" type="date" className="h-11" {...register("due_date")} />
+          <Button type="submit" size="md" loading={formState.isSubmitting} aria-label="Add task">
+            <Plus /> <span className="hidden sm:inline">Add</span>
+          </Button>
+        </div>
       </form>
       {optimistic.length === 0 ? (
         <EmptyState compact icon={<CheckCircle2 />} title="No tasks yet" description="Break the work into a simple checklist." />

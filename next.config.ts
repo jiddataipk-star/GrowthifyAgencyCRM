@@ -11,6 +11,11 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
+  experimental: {
+    // Every screen is per-user and per-request (auth + RLS), so automatic
+    // "instant navigation" validation only reports expected auth redirects.
+    instantInsights: { validationLevel: "manual-warning" },
+  },
   poweredByHeader: false,
   // The invoice PDF renderer reads its fonts from disk at request time.
   outputFileTracingIncludes: {

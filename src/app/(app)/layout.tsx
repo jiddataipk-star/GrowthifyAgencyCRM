@@ -40,7 +40,7 @@ async function Shell({ children }: { children: React.ReactNode }) {
           <div className="flex h-[72px] items-center gap-3 px-4 sm:px-6 lg:h-[100px] lg:gap-6 lg:px-10">
             <MobileNav role={member.role} />
             <PageTitle className="min-w-0 flex-1 truncate text-center text-xl font-bold tracking-[-0.01em] lg:text-left lg:text-page" />
-            <GlobalSearch finance={finance} className="hidden w-[300px] md:flex" />
+            <GlobalSearch finance={finance} shortcut className="hidden w-[300px] md:flex" />
             <Link
               href="/settings"
               aria-label="Settings"
