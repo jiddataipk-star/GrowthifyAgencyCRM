@@ -124,7 +124,7 @@ export function LeadsBoard({ leads: initial, today }: { leads: Lead[]; today: st
           },
         }}
       >
-        <div className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0 xl:grid xl:grid-cols-6 xl:overflow-visible">
+        <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0 min-[1800px]:grid min-[1800px]:grid-cols-6">
           {STAGES.map((stage) => {
             const items = leads.filter((l) => l.stage === stage);
             const value = items.filter((l) => l.currency === "PKR").reduce((sum, l) => sum + l.est_value, 0);
@@ -182,7 +182,7 @@ function Column({ stage, count, value, children }: { stage: Enums<"lead_stage">;
       ref={setNodeRef}
       aria-label={`${LEAD_STAGE_LABELS[stage]} (${count})`}
       className={cn(
-        "flex w-[280px] shrink-0 snap-start flex-col rounded-card border border-line bg-surface/60 p-3 transition-colors xl:w-auto",
+        "flex w-[272px] shrink-0 snap-start flex-col rounded-card border border-line bg-surface/60 p-3 transition-colors min-[1800px]:w-auto",
         isOver && "border-accent-fg bg-surface-2",
       )}
     >

@@ -128,3 +128,9 @@ export function timeAgo(value: string | null | undefined, now: Date = new Date()
   if (days < 7) return `${days} d ago`;
   return formatDayMonth(todayPK(new Date(value)));
 }
+
+/** True when a timestamp falls within the next `days` days (or is already past). */
+export function expiresWithin(value: string | null | undefined, days: number, now: Date = new Date()): boolean {
+  if (!value) return false;
+  return new Date(value).getTime() - now.getTime() < days * 86_400_000;
+}

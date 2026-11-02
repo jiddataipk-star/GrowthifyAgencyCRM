@@ -94,11 +94,11 @@ export function KpiCard({
   className?: string;
 }) {
   return (
-    <Card className={cn("flex min-w-0 items-center gap-4 px-5 py-5 sm:px-[22px] sm:py-[22px]", className)}>
+    <Card className={cn("@container flex min-w-0 items-center gap-4 px-5 py-5 sm:px-[22px] sm:py-[22px]", className)}>
       <IconCircle tone={tone}>{icon}</IconCircle>
       <div className="min-w-0">
         <p className="truncate text-[13.5px] font-medium text-fg-2">{label}</p>
-        <p className="tabular mt-1 truncate text-[22px] leading-tight font-extrabold tracking-[-0.01em]">{value}</p>
+        <p className="tabular mt-1 truncate text-[20px] leading-tight font-extrabold tracking-[-0.01em] @[17rem]:text-[22px]">{value}</p>
         {sub ? (
           <p
             className={cn(

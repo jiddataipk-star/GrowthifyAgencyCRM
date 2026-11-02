@@ -755,7 +755,6 @@ export type Database = {
           notify_renewals: boolean;
           notify_social: boolean;
           ntn: string | null;
-          number_format: string;
           payment_notes: string | null;
           phone: string | null;
           show_whatsapp_on_invoice: boolean;
@@ -793,7 +792,6 @@ export type Database = {
           notify_renewals?: boolean;
           notify_social?: boolean;
           ntn?: string | null;
-          number_format?: string;
           payment_notes?: string | null;
           phone?: string | null;
           show_whatsapp_on_invoice?: boolean;
@@ -830,7 +828,6 @@ export type Database = {
           notify_renewals?: boolean;
           notify_social?: boolean;
           ntn?: string | null;
-          number_format?: string;
           payment_notes?: string | null;
           phone?: string | null;
           show_whatsapp_on_invoice?: boolean;
@@ -1328,6 +1325,7 @@ export type Database = {
         Args: Record<PropertyKey, never>;
         Returns: Database["public"]["Enums"]["member_role"];
       };
+      clear_demo_data: { Args: Record<PropertyKey, never>; Returns: number };
       convert_lead: { Args: { p_lead_id: string; p_project?: Json }; Returns: string };
       cycles_due: {
         Args: { p_as_of: string; p_interval: number; p_next_due: string };
@@ -1338,6 +1336,7 @@ export type Database = {
       is_member: { Args: Record<PropertyKey, never>; Returns: boolean };
       is_owner: { Args: Record<PropertyKey, never>; Returns: boolean };
       is_project_member: { Args: { p_project_id: string }; Returns: boolean };
+      load_demo_data: { Args: Record<PropertyKey, never>; Returns: number };
       mark_milestone_paid: {
         Args: {
           p_method?: Database["public"]["Enums"]["payment_method"];
