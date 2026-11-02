@@ -3,7 +3,7 @@ import { ArrowDownLeft, ArrowUpRight, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/money";
 import { whatsappLink } from "@/lib/phone";
-import { PLATFORM_COLORS, PLATFORM_LABELS } from "@/lib/constants";
+import { PLATFORM_LABELS } from "@/lib/constants";
 import { IconCircle } from "@/components/ui/card";
 import type { Enums } from "@/types/db";
 
@@ -25,7 +25,7 @@ export function Amount({
       className={cn(
         "tabular font-bold whitespace-nowrap",
         type === "income" && "text-success",
-        type === "expense" && "text-danger",
+        type === "expense" && "text-fg",
         className,
       )}
     >
@@ -36,20 +36,19 @@ export function Amount({
 
 export function TxIcon({ type, size = "md" }: { type: "income" | "expense"; size?: "md" | "sm" }) {
   return (
-    <IconCircle tone={type === "income" ? "success" : "danger"} size={size}>
+    <IconCircle tone={type === "income" ? "success" : "neutral"} size={size}>
       {type === "income" ? <ArrowDownLeft /> : <ArrowUpRight />}
     </IconCircle>
   );
 }
 
 /** Letter monogram in the platform's tint (matches the style frame). */
-export function PlatformMark({ platform, size = 46 }: { platform: Enums<"social_platform">; size?: number }) {
-  const color = PLATFORM_COLORS[platform];
+export function PlatformMark({ platform, size = 40 }: { platform: Enums<"social_platform">; size?: number }) {
   return (
     <span
       aria-hidden
-      className="flex shrink-0 items-center justify-center rounded-full text-[13px] font-extrabold light:!text-fg"
-      style={{ width: size, height: size, color, background: `color-mix(in srgb, ${color} 14%, transparent)` }}
+      className="font-display flex shrink-0 items-center justify-center rounded-full bg-primary-tint text-[13px] font-bold text-primary"
+      style={{ width: size, height: size }}
     >
       {PLATFORM_LABELS[platform][0]}
     </span>
@@ -81,11 +80,11 @@ export function WhatsAppLink({
         aria-label={`${label} (opens WhatsApp)`}
         title={label}
         className={cn(
-          "inline-flex size-9 items-center justify-center rounded-full text-success transition-colors hover:bg-[color-mix(in_srgb,var(--success)_12%,transparent)]",
+          "inline-flex size-8 items-center justify-center rounded-full text-success transition-colors hover:bg-success-tint",
           className,
         )}
       >
-        <MessageCircle className="size-[18px]" />
+        <MessageCircle className="size-4" />
       </a>
     );
   }
@@ -95,7 +94,7 @@ export function WhatsAppLink({
       target="_blank"
       rel="noopener noreferrer"
       className={cn(
-        "inline-flex h-9 items-center gap-1.5 rounded-full border border-success/50 px-4 text-[13px] font-semibold whitespace-nowrap text-success transition-colors hover:bg-[color-mix(in_srgb,var(--success)_10%,transparent)]",
+        "inline-flex h-8 items-center gap-1.5 rounded-full border border-success/40 bg-white px-3.5 text-[13px] font-semibold whitespace-nowrap text-success transition-colors hover:bg-success-tint",
         className,
       )}
     >
@@ -105,24 +104,56 @@ export function WhatsAppLink({
   );
 }
 
-/** "Assalam o Alaikum …" reminder for a due payment. */
+export type PaymentDetails = {
+  company_name?: string | null;
+  bank_name?: string | null;
+  account_title?: string | null;
+  account_number?: string | null;
+  iban?: string | null;
+  jazzcash_number?: string | null;
+  easypaisa_number?: string | null;
+  raast_id?: string | null;
+  payment_notes?: string | null;
+};
+
+/** The "how to pay us" block appended to WhatsApp reminders. */
+export function paymentDetailsText(details: PaymentDetails | null | undefined): string {
+  if (!details) return "";
+  const lines = [
+    details.bank_name || details.account_number || details.iban
+      ? [`Bank: ${details.bank_name ?? ""}`.trim(), details.account_title ? `Title: ${details.account_title}` : "", details.account_number ? `A/C: ${details.account_number}` : "", details.iban ? `IBAN: ${details.iban}` : ""]
+          .filter((l) => l && l !== "Bank:")
+          .join("\n")
+      : "",
+    details.jazzcash_number ? `JazzCash: ${details.jazzcash_number}` : "",
+    details.easypaisa_number ? `Easypaisa: ${details.easypaisa_number}` : "",
+    details.raast_id ? `Raast ID: ${details.raast_id}` : "",
+    details.payment_notes ?? "",
+  ].filter(Boolean);
+  return lines.length ? `\n\nPayment details:\n${lines.join("\n")}` : "";
+}
+
+/** "Assalam o Alaikum …" reminder for money that is due, with our payment details. */
 export function paymentReminder({
   contact,
   item,
   amount,
   currency,
   due,
-  company = "Growthify Agency",
+  details,
+  company,
 }: {
   contact?: string | null;
   item: string;
   amount: number;
   currency: string;
   due: string;
+  details?: PaymentDetails | null;
   company?: string;
 }) {
   const greeting = contact ? `Assalam o Alaikum ${contact},` : "Assalam o Alaikum,";
-  return `${greeting} a gentle reminder that the payment for ${item} (${formatMoney(amount, currency)}) is due on ${due}. Thank you! — ${company}`;
+  const name = company ?? details?.company_name ?? "Growthify Agency";
+  return `${greeting} a gentle reminder for ${item}: ${formatMoney(amount, currency)} (due ${due}).${paymentDetailsText(details)}\n\nPlease share the screenshot after payment. JazakAllah! — ${name}`;
 }
 
 export function RowList({ children, className }: { children: React.ReactNode; className?: string }) {

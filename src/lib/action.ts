@@ -68,7 +68,7 @@ export function friendlyError(error: unknown): string {
     case "23505":
       return message.includes("duplicate key") ? "That already exists." : message;
     case "23503":
-      return "This record is still linked to other records (projects, invoices or payments). Archive it instead.";
+      return "This record is still linked to other records (projects, subscriptions or payments). Archive it instead.";
     case "23514":
       return message.includes("violates check constraint") ? "Some values are out of range." : message;
     case "P0002":

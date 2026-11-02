@@ -25,7 +25,7 @@ export function DialogContent({
 }) {
   return (
     <D.Portal>
-      <D.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px] data-[state=open]:animate-[overlay-in_150ms_ease-out]" />
+      <D.Overlay className="fixed inset-0 z-50 bg-[#0b1210]/45 backdrop-blur-[2px] data-[state=open]:animate-[overlay-in_150ms_ease-out]" />
       <D.Content
         className={cn(
           "fixed z-50 flex max-h-[92dvh] w-full flex-col border border-line bg-surface shadow-pop focus:outline-none",
@@ -40,7 +40,7 @@ export function DialogContent({
       >
         <div className="flex items-start justify-between gap-4 border-b border-line px-6 pt-6 pb-4">
           <div className="min-w-0">
-            <D.Title className="text-card font-bold">{title}</D.Title>
+            <D.Title className="font-display text-[17px] font-bold">{title}</D.Title>
             {description ? (
               <D.Description className="mt-1 text-sm text-fg-2">{description}</D.Description>
             ) : (

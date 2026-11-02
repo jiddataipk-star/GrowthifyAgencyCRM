@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 /** Paths reachable without a session. */
-const PUBLIC_PATHS = ["/login", "/auth/", "/i/", "/api/cron/"];
+const PUBLIC_PATHS = ["/login", "/auth/", "/api/cron/"];
 
 function isPublic(pathname: string) {
   return PUBLIC_PATHS.some((path) => pathname === path.replace(/\/$/, "") || pathname.startsWith(path));

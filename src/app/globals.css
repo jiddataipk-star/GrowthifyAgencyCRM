@@ -1,77 +1,66 @@
 @import "tailwindcss";
 
-/* `light:` utilities apply when the light theme is active. */
-@custom-variant light (&:where([data-theme="light"], [data-theme="light"] *));
-
 /* ─────────────────────────────────────────────────────────────────────────────
-   Growthify OS design tokens
-   Dark is the brand default. Values follow the brief's style frame; muted,
-   danger, success and warning were tuned so text passes WCAG AA (≥ 4.5:1).
+   Growthify OS design tokens — white canvas, black type, deep Growthify green
+   for brand and actions, red reserved for alerts and anything wrong.
+   Every text colour passes WCAG AA (≥ 4.5:1) on its background.
    ───────────────────────────────────────────────────────────────────────────── */
-:root,
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --bg: #0a1c14;
-  --sidebar: #06140e;
-  --surface: #0f2b20;
-  --surface-2: #133526;
-  --surface-3: #18402e;
-  --border: #1c3d2e;
-  --border-strong: #2a5442;
-  --text: #ffffff;
-  --text-2: #a9bdb2;
-  --muted: #809b8d;
-  --accent: #c8ff40;
-  --accent-ink: #07150f;
-  --accent-fg: #c8ff40; /* accent used as text/icon */
-  --primary: #c8ff40; /* primary button fill */
-  --primary-ink: #07150f;
-  --success: #3ddc97;
-  --danger: #f26b4f;
-  --warning: #f5b841;
-  --info: #8fb7ff;
-  --chart-1: #c8ff40;
-  --chart-2: #3ddc97;
-  --chart-3: #ffffff;
-  --chart-4: #4e7a64;
-  --chart-grid: #1c3d2e;
-  --shadow-pop: 0 18px 48px -12px rgb(0 0 0 / 0.55);
-}
-
-:root[data-theme="light"] {
+:root {
   color-scheme: light;
-  --bg: #f4f7f5;
-  --sidebar: #ffffff;
-  --surface: #ffffff;
-  --surface-2: #eef3f0;
-  --surface-3: #e5ece8;
-  --border: #e3ece7;
-  --border-strong: #cddad3;
-  --text: #07150f;
-  --text-2: #4f6258;
-  --muted: #5f7268;
-  --accent: #c8ff40; /* lime only as a fill with dark text — never text on white */
-  --accent-ink: #07150f;
-  --accent-fg: #0f2b20;
-  --primary: #0f2b20;
+
+  /* Canvas */
+  --bg: #ffffff;
+  --canvas: #f6f8f7; /* table headers, subtle zones */
+  --surface: #ffffff; /* cards */
+  --surface-2: #f3f6f4; /* hover, quiet fills */
+  --surface-3: #e9efec;
+  --border: #e3e9e6;
+  --border-strong: #cdd7d2;
+
+  /* Type */
+  --text: #0b1210;
+  --text-2: #3f4b46;
+  --muted: #5f6b66;
+
+  /* Brand */
+  --primary: #0b3d2c; /* buttons, active states, key numbers */
+  --primary-hover: #0f4f3a;
   --primary-ink: #ffffff;
-  --success: #087a54;
-  --danger: #c9401f;
-  --warning: #9a6a07;
-  --info: #2f6fe0;
-  --chart-1: #0f2b20;
-  --chart-2: #12a877;
-  --chart-3: #8dbf1f;
-  --chart-4: #9fb5aa;
-  --chart-grid: #e3ece7;
-  --shadow-pop: 0 18px 48px -16px rgb(7 21 15 / 0.22);
+  --primary-tint: #e8f4ee; /* green wash behind icons and pills */
+  --accent: #c8ff40; /* Growthify lime: logo + active marker on the dark frame only */
+  --accent-ink: #07150f;
+
+  /* Dark frame (sidebar) */
+  --frame: #072a1f;
+  --frame-2: #0c3a2b;
+  --frame-text: #c9ddd4;
+  --frame-muted: #8db3a2;
+  --frame-border: #12402f;
+
+  /* Status */
+  --success: #0e7a4f;
+  --success-tint: #e8f4ee;
+  --danger: #c8261b;
+  --danger-tint: #fdedec;
+
+  /* Charts: greens for money in, neutral for money out, black for results */
+  --chart-1: #0b3d2c;
+  --chart-2: #9db8ab;
+  --chart-3: #0b1210;
+  --chart-4: #3f8f6c;
+  --chart-5: #cfdcd6;
+  --chart-grid: #e9efec;
+
+  --shadow-card: 0 1px 2px rgb(11 18 16 / 0.04), 0 1px 1px rgb(11 18 16 / 0.02);
+  --shadow-pop: 0 20px 48px -12px rgb(11 18 16 / 0.22), 0 4px 12px -4px rgb(11 18 16 / 0.08);
 }
 
 @theme inline {
-  --font-sans: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-jakarta), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 
   --color-background: var(--bg);
-  --color-sidebar: var(--sidebar);
+  --color-canvas: var(--canvas);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
   --color-surface-3: var(--surface-3);
@@ -80,34 +69,41 @@
   --color-fg: var(--text);
   --color-fg-2: var(--text-2);
   --color-muted: var(--muted);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-ink: var(--primary-ink);
+  --color-primary-tint: var(--primary-tint);
   --color-accent: var(--accent);
   --color-accent-ink: var(--accent-ink);
-  --color-accent-fg: var(--accent-fg);
-  --color-primary: var(--primary);
-  --color-primary-ink: var(--primary-ink);
+  --color-frame: var(--frame);
+  --color-frame-2: var(--frame-2);
+  --color-frame-text: var(--frame-text);
+  --color-frame-muted: var(--frame-muted);
+  --color-frame-border: var(--frame-border);
   --color-success: var(--success);
+  --color-success-tint: var(--success-tint);
   --color-danger: var(--danger);
-  --color-warning: var(--warning);
-  --color-info: var(--info);
+  --color-danger-tint: var(--danger-tint);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
 
-  /* Desktop layouts with the full 250px sidebar (1440 design width). */
+  /* Desktop layouts with the full sidebar (1440 design width). */
   --breakpoint-wide: 87.5rem;
 
-  --radius-card: 20px;
-  --radius-control: 14px;
+  --radius-card: 18px;
+  --radius-control: 12px;
 
+  --shadow-card: var(--shadow-card);
   --shadow-pop: var(--shadow-pop);
 
-  --text-page: 28px;
+  --text-page: 26px;
   --text-page--line-height: 1.2;
-  --text-section: 22px;
-  --text-section--line-height: 1.25;
-  --text-card: 18px;
-  --text-card--line-height: 1.3;
+  --text-section: 19px;
+  --text-section--line-height: 1.3;
+  --text-card: 16px;
+  --text-card--line-height: 1.35;
 }
 
 @layer base {
@@ -118,35 +114,34 @@
     background: var(--bg);
     color: var(--text);
     font-family: var(--font-sans);
-    font-weight: 500;
     font-size: 15px;
-    line-height: 1.5;
+    line-height: 1.55;
+    font-feature-settings: "cv11", "ss01"; /* Inter: straight-sided 1, open digits */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.015em;
   }
   ::selection {
-    background: var(--accent);
-    color: var(--accent-ink);
+    background: var(--primary-tint);
+    color: var(--primary);
   }
   /* Visible, on-brand keyboard focus everywhere. */
   :focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--primary);
     outline-offset: 2px;
   }
-  :root[data-theme="light"] :focus-visible {
-    outline-color: var(--primary);
-    box-shadow: 0 0 0 4px var(--accent);
-  }
   input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator,
   input[type="month"]::-webkit-calendar-picker-indicator {
-    opacity: 0.7;
+    opacity: 0.6;
     cursor: pointer;
   }
-  :root[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator,
-  :root[data-theme="dark"] input[type="month"]::-webkit-calendar-picker-indicator {
-    filter: invert(1);
-  }
-  /* Thin, quiet scrollbars */
   * {
     scrollbar-width: thin;
     scrollbar-color: var(--border-strong) transparent;
@@ -156,6 +151,10 @@
 @layer utilities {
   .tabular {
     font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum", "cv11";
+  }
+  .font-display {
+    font-family: var(--font-display);
   }
   .no-scrollbar {
     scrollbar-width: none;
@@ -187,7 +186,7 @@
 @keyframes content-in {
   from {
     opacity: 0;
-    transform: translateY(8px) scale(0.98);
+    transform: translateY(8px) scale(0.985);
   }
 }
 @keyframes sheet-in {

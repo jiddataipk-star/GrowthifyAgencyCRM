@@ -21,8 +21,8 @@ describe("Pakistani phone numbers", () => {
   });
 
   it("builds wa.me links that only open WhatsApp", () => {
-    expect(whatsappLink("0321-6312898", "Salam! Invoice GA-2026-0001")).toBe(
-      "https://wa.me/923216312898?text=Salam!%20Invoice%20GA-2026-0001",
+    expect(whatsappLink("0321-6312898", "Salam! Payment reminder 5 Nov")).toBe(
+      "https://wa.me/923216312898?text=Salam!%20Payment%20reminder%205%20Nov",
     );
     expect(whatsappLink(null)).toBeNull();
   });

@@ -35,7 +35,7 @@ export function Avatar({
     <span
       aria-hidden
       className={cn(
-        "flex shrink-0 items-center justify-center bg-[color-mix(in_srgb,var(--accent)_14%,var(--surface-2))] font-bold text-accent-fg",
+        "flex shrink-0 items-center justify-center bg-primary-tint font-display font-bold text-primary",
         shape,
         className,
       )}

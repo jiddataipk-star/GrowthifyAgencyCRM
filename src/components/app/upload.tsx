@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 export type Bucket = "receipts" | "files" | "logos";
 
 const LIMITS: Record<Bucket, { bytes: number; accept: string; label: string }> = {
-  receipts: { bytes: 10 * 1024 * 1024, accept: "image/png,image/jpeg,image/webp,application/pdf", label: "PNG, JPG or PDF up to 10 MB" },
+  receipts: { bytes: 10 * 1024 * 1024, accept: "image/png,image/jpeg,image/webp,application/pdf", label: "Screenshot (PNG/JPG) or PDF, up to 10 MB" },
   files: { bytes: 25 * 1024 * 1024, accept: "", label: "Any file up to 25 MB" },
   logos: { bytes: 2 * 1024 * 1024, accept: "image/png,image/jpeg,image/webp", label: "PNG, JPG or WebP up to 2 MB" },
 };
@@ -63,8 +63,8 @@ export function ReceiptInput({ value, onChange }: { value: string; onChange: (pa
         }}
       />
       {value ? (
-        <div className="flex h-[50px] items-center gap-3 rounded-control border border-line bg-surface-2 px-4">
-          <Paperclip className="size-4 text-accent-fg" aria-hidden />
+        <div className="flex h-11 items-center gap-3 rounded-control border border-line bg-canvas px-3.5">
+          <Paperclip className="size-4 text-primary" aria-hidden />
           <span className="min-w-0 flex-1 truncate text-sm font-semibold">{name}</span>
           <button type="button" onClick={() => onChange("")} className="rounded-full p-1 text-muted hover:text-danger" aria-label="Remove receipt">
             <X className="size-4" />
@@ -76,15 +76,15 @@ export function ReceiptInput({ value, onChange }: { value: string; onChange: (pa
           disabled={busy}
           onClick={() => input.current?.click()}
           className={cn(
-            "flex h-[50px] w-full items-center justify-center gap-2 rounded-control border border-dashed border-line-strong text-sm font-semibold text-fg-2 transition-colors hover:border-accent-fg hover:text-accent-fg",
+            "flex h-11 w-full items-center justify-center gap-2 rounded-control border border-dashed border-line-strong bg-canvas text-[13.5px] font-semibold text-fg-2 transition-colors hover:border-primary hover:text-primary",
             busy && "animate-pulse",
           )}
         >
           <Upload className="size-4" aria-hidden />
-          {busy ? "Uploading…" : "Attach receipt (optional)"}
+          {busy ? "Uploading…" : "Attach screenshot / receipt (optional)"}
         </button>
       )}
-      <p className="mt-1.5 text-[13px] text-muted">{LIMITS.receipts.label}</p>
+      <p className="mt-1.5 text-[12.5px] text-muted">{LIMITS.receipts.label}</p>
     </div>
   );
 }
@@ -108,14 +108,14 @@ export function LogoInput({
       <button
         type="button"
         onClick={() => input.current?.click()}
-        className="group relative flex size-[84px] shrink-0 items-center justify-center overflow-hidden rounded-[22px] border border-dashed border-line-strong bg-surface-2 hover:border-accent-fg"
+        className="group relative flex size-[76px] shrink-0 items-center justify-center overflow-hidden rounded-[18px] border border-dashed border-line-strong bg-canvas hover:border-primary"
         aria-label={value ? "Change logo" : "Upload logo"}
       >
         {value ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={value} alt="" className="size-full object-cover" />
         ) : (
-          <Upload className={cn("size-6 text-muted group-hover:text-accent-fg", busy && "animate-pulse")} />
+          <Upload className={cn("size-5 text-muted group-hover:text-primary", busy && "animate-pulse")} />
         )}
       </button>
       <div className="text-sm">

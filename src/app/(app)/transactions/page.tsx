@@ -17,17 +17,17 @@ import { ListToolbar } from "@/components/app/toolbar";
 import { TransactionFormDialog } from "./transaction-form";
 import { TransactionsTable, type TxRow } from "./transactions-table";
 
-export const metadata: Metadata = { title: "Payments" };
+export const metadata: Metadata = { title: "Transactions" };
 
-export default function PaymentsPage(props: { searchParams: SearchParams }) {
+export default function TransactionsPage(props: { searchParams: SearchParams }) {
   return (
     <Suspense fallback={<PageSkeleton />}>
-      <Payments searchParams={props.searchParams} />
+      <Transactions searchParams={props.searchParams} />
     </Suspense>
   );
 }
 
-async function Payments({ searchParams }: { searchParams: SearchParams }) {
+async function Transactions({ searchParams }: { searchParams: SearchParams }) {
   const member = await requireFinance();
   const params = await searchParams;
   const supabase = await createClient();
@@ -71,15 +71,16 @@ async function Payments({ searchParams }: { searchParams: SearchParams }) {
 
   return (
     <div className="flex flex-col gap-7">
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 wide:grid-cols-4">
-        <KpiCard icon={<ArrowDownLeft />} tone="success" label={`Income · ${label}`} value={formatMoney(income, "PKR")} sub={totals.income_USD ? `+ ${formatMoney(totals.income_USD, "USD")}` : "PKR"} subTone="muted" />
-        <KpiCard icon={<ArrowUpRight />} tone="danger" label={`Expenses · ${label}`} value={formatMoney(expense, "PKR")} sub={totals.expense_USD ? `+ ${formatMoney(totals.expense_USD, "USD")}` : "PKR"} subTone="muted" />
-        <KpiCard icon={<Scale />} tone="accent" label={`Net · ${label}`} value={formatMoney(income - expense, "PKR", { sign: "auto" })} sub={income ? `${Math.round(((income - expense) / income) * 100)}% margin` : "—"} subTone={income - expense >= 0 ? "success" : "danger"} />
-        <KpiCard icon={<Wallet />} tone="info" label="Transactions found" value={list.count ?? 0} sub="With current filters" subTone="muted" />
+      <div className="grid grid-cols-2 gap-3 sm:gap-5 wide:grid-cols-4">
+        <KpiCard icon={<ArrowDownLeft />} tone="success" label={`Money in · ${label}`} value={formatMoney(income, "PKR")} sub={totals.income_USD ? `+ ${formatMoney(totals.income_USD, "USD")}` : "Collected"} />
+        <KpiCard icon={<ArrowUpRight />} tone="neutral" label={`Money out · ${label}`} value={formatMoney(expense, "PKR")} sub={totals.expense_USD ? `+ ${formatMoney(totals.expense_USD, "USD")}` : "Spent"} />
+        <KpiCard icon={<Scale />} tone={income - expense >= 0 ? "accent" : "danger"} label={`Profit · ${label}`} value={formatMoney(income - expense, "PKR", { sign: "auto" })} sub={!income ? "No income yet" : income - expense < 0 ? "Spent more than collected" : `${Math.round(((income - expense) / income) * 100)}% margin`} subTone={income - expense >= 0 ? "success" : "danger"} />
+        <KpiCard icon={<Wallet />} tone="neutral" label="Transactions found" value={list.count ?? 0} sub="With current filters" />
       </div>
 
       <Section
-        title="Payments & Transactions"
+        title="Transactions"
+        description="Every rupee in and out — with who, what for, when, how and the screenshot."
         actions={
           <>
             <Button asChild variant="outline" size="pill">
@@ -95,14 +96,14 @@ async function Payments({ searchParams }: { searchParams: SearchParams }) {
           className="mb-5"
           keep={["from", "to", "client", "project", "category", "method", "currency", "q"]}
           tabs={[
-            { value: "all", label: "All Transactions" },
-            { value: "income", label: "Income" },
-            { value: "expense", label: "Expense" },
+            { value: "all", label: "All" },
+            { value: "income", label: "Money in" },
+            { value: "expense", label: "Money out" },
           ]}
         />
         <ListToolbar
           className="mb-5"
-          searchPlaceholder="Search description, TID…"
+          searchPlaceholder="Search name, TID, what for…"
           dates
           filters={[
             { param: "client", placeholder: "All clients", options: options.clients.map((c) => ({ value: c.id, label: c.name })) },
@@ -117,7 +118,7 @@ async function Payments({ searchParams }: { searchParams: SearchParams }) {
             <EmptyState
               icon={<Wallet />}
               title={list.count === 0 && !Object.values(filters).some(Boolean) ? "No transactions yet" : "No transactions match"}
-              description="Income from milestones, subscriptions and invoices appears here automatically. Record other income and expenses manually."
+              description="Payments marked paid in Collections and renewals appear here automatically. Record expenses and other income manually."
               action={addButton}
             />
           </Card>

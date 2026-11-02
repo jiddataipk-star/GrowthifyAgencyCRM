@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { compactNumber, formatMoney, toMajor, toMinor } from "@/lib/money";
-import { invoiceTotals } from "@/lib/invoices";
+import { dueState, remaining, renewalLabel, renewalState } from "@/lib/collections";
 import { toCsv } from "@/lib/csv";
 
 describe("money", () => {
@@ -27,18 +27,25 @@ describe("money", () => {
   });
 });
 
-describe("invoice totals (mirrors the database trigger)", () => {
-  it("applies discount before tax and caps the discount at the subtotal", () => {
-    const totals = invoiceTotals(
-      [
-        { qty: 1, unit_price: 5_000_000 },
-        { qty: 2, unit_price: 250_000 },
-      ],
-      100_000,
-      16,
-    );
-    expect(totals).toEqual({ subtotal: 5_500_000, discount: 100_000, tax: 864_000, total: 6_264_000 });
-    expect(invoiceTotals([{ qty: 1, unit_price: 100 }], 500, 0).discount).toBe(100);
+describe("collections & prepaid renewals", () => {
+  const today = "2026-11-02";
+  it("derives a due's state, overdue first", () => {
+    expect(dueState({ status: "pending", due_date: "2026-11-01", amount_paid: 500 }, today)).toBe("overdue");
+    expect(dueState({ status: "pending", due_date: today, amount_paid: 0 }, today)).toBe("due_today");
+    expect(dueState({ status: "pending", due_date: "2026-11-09", amount_paid: 500 }, today)).toBe("partial");
+    expect(dueState({ status: "pending", due_date: "2026-11-09", amount_paid: 0 }, today)).toBe("pending");
+    expect(dueState({ status: "paid", due_date: "2026-10-01", amount_paid: 1 }, today)).toBe("paid");
+    expect(dueState({ status: "cancelled", due_date: "2026-10-01", amount_paid: 0 }, today)).toBe("cancelled");
+    expect(remaining({ amount: 1000, amount_paid: 1200 })).toBe(0);
+  });
+
+  it("treats the renewal date as the day payment is due", () => {
+    expect(renewalState({ status: "active", next_due_date: "2026-12-01" }, today)).toBe("active");
+    expect(renewalState({ status: "active", next_due_date: "2026-11-06" }, today)).toBe("expiring");
+    expect(renewalState({ status: "active", next_due_date: today }, today)).toBe("expired");
+    expect(renewalState({ status: "paused", next_due_date: "2026-10-01" }, today)).toBe("paused");
+    expect(renewalLabel("2026-10-21", today)).toBe("Lapsed 12 days ago");
+    expect(renewalLabel("2026-11-03", today)).toBe("Renews tomorrow");
   });
 });
 

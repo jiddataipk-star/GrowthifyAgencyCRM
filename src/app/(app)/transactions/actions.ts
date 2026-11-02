@@ -10,9 +10,10 @@ function toRow(input: z.output<typeof transactionSchema>) {
   return {
     type: input.type,
     amount: toMinor(input.amount),
-    tax_withheld: input.type === "income" ? toMinor(input.tax_withheld ?? 0) : 0,
     currency: input.currency,
     date: input.date,
+    time: emptyToNull(input.time ?? ""),
+    party_name: emptyToNull(input.party_name ?? ""),
     category: input.category,
     method: input.method,
     reference: emptyToNull(input.reference ?? ""),

@@ -2,32 +2,24 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Circle, Flag, Pencil, Plus, Trash2 } from "lucide-react";
+import { CheckCircle2, Circle, Flag, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Field, FormGrid, Input, Select } from "@/components/ui/form";
-import { Dialog, DialogContent, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Input, Select } from "@/components/ui/form";
 import { Confirm } from "@/components/ui/confirm";
 import { EmptyState } from "@/components/ui/feedback";
 import { Pill } from "@/components/ui/pill";
-import { PaymentDialog } from "@/components/app/payment-dialog";
+import { DueFormDialog, DueMenu, DuePayButton } from "../../collections/due-dialogs";
+import { dueState } from "@/lib/collections";
+import type { Option } from "@/lib/data/lookups";
 import { projectStatusOptions } from "@/lib/constants";
 import { formatMoney } from "@/lib/money";
 import { dueLabel, formatDayMonth } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 import type { Enums, Tables } from "@/types/db";
-import {
-  addTaskAction,
-  deleteMilestoneAction,
-  deleteProjectAction,
-  deleteTaskAction,
-  markMilestonePaidAction,
-  saveMilestoneAction,
-  toggleTaskAction,
-  updateProjectProgressAction,
-} from "../actions";
+import { addTaskAction, deleteProjectAction, deleteTaskAction, toggleTaskAction, updateProjectProgressAction } from "../actions";
 
 /* ── Status + progress (staff can use this on their projects) ──────────── */
 export function ProgressControl({ id, status, progress }: { id: string; status: Enums<"project_status">; progress: number }) {
@@ -39,8 +31,8 @@ export function ProgressControl({ id, status, progress }: { id: string; status: 
   return (
     <Card>
       <div className="mb-4 flex items-center justify-between">
-        <p className="text-card font-bold">Where it stands</p>
-        <span className="tabular text-2xl font-extrabold text-accent-fg">{value}%</span>
+        <p className="font-display text-card font-bold">Where it stands</p>
+        <span className="font-display tabular text-2xl font-bold text-primary">{value}%</span>
       </div>
       <label htmlFor="progress-range" className="sr-only">Progress</label>
       <input
@@ -51,7 +43,7 @@ export function ProgressControl({ id, status, progress }: { id: string; status: 
         step={5}
         value={value}
         onChange={(event) => setValue(Number(event.target.value))}
-        className="w-full cursor-pointer accent-[var(--accent)]"
+        className="w-full cursor-pointer accent-[var(--primary)]"
       />
       <div className="mt-4 flex gap-3">
         <Select aria-label="Status" options={projectStatusOptions} value={state} onChange={(event) => setState(event.target.value as Enums<"project_status">)} className="h-11" />
@@ -96,7 +88,7 @@ export function TasksCard({ projectId, tasks, team, today }: { projectId: string
   return (
     <Card>
       <div className="mb-4 flex items-center justify-between">
-        <p className="text-card font-bold">Tasks</p>
+        <p className="font-display text-card font-bold">Tasks</p>
         <span className="text-sm font-semibold text-muted">{optimistic.length ? `${done} of ${optimistic.length} done` : "No tasks"}</span>
       </div>
       <form onSubmit={add} className="mb-4 space-y-2.5">
@@ -126,7 +118,7 @@ export function TasksCard({ projectId, tasks, team, today }: { projectId: string
                     if (!result.ok) toast.error(result.error);
                   })
                 }
-                className="shrink-0 text-muted hover:text-accent-fg"
+                className="shrink-0 text-muted hover:text-primary"
               >
                 {task.done ? <CheckCircle2 className="size-5 text-success" /> : <Circle className="size-5" />}
               </button>
@@ -158,159 +150,67 @@ export function TasksCard({ projectId, tasks, team, today }: { projectId: string
   );
 }
 
-/* ── Milestones (finance only) ────────────────────────────────────────── */
-export function MilestonesCard({
+/* ── Payment schedule (finance only) ─────────────────────────────────── */
+type ScheduleDue = Tables<"dues">;
+
+export function PaymentScheduleCard({
   projectId,
+  clientId,
+  clientName,
   currency,
   contractValue,
-  milestones,
+  dues,
   today,
-  canDeletePaid,
+  options,
 }: {
   projectId: string;
+  clientId: string;
+  clientName: string;
   currency: Enums<"currency_code">;
   contractValue: number;
-  milestones: Tables<"milestones">[];
+  dues: ScheduleDue[];
   today: string;
-  canDeletePaid: boolean;
+  options: { clients: Option[]; projects: (Option & { client_id: string; currency: string })[] };
 }) {
-  const scheduled = milestones.reduce((sum, m) => sum + m.amount, 0);
-  const paid = milestones.filter((m) => m.paid).reduce((sum, m) => sum + m.amount, 0);
-  const [remove, setRemove] = React.useState<Tables<"milestones"> | null>(null);
+  const live = dues.filter((d) => d.status !== "cancelled");
+  const scheduled = live.reduce((sum, d) => sum + d.amount, 0);
+  const received = live.reduce((sum, d) => sum + d.amount_paid, 0);
+  const left = contractValue - scheduled;
 
   return (
     <Card>
       <div className="mb-1 flex items-center justify-between gap-3">
-        <p className="text-card font-bold">Milestones</p>
-        <MilestoneDialog projectId={projectId} currency={currency} trigger={<Button size="sm" variant="secondary"><Plus /> Add</Button>} />
+        <p className="font-display text-card font-bold">Payment schedule</p>
+        <DueFormDialog clients={options.clients} projects={options.projects} preset={{ clientId, projectId }} trigger={<Button size="sm" variant="secondary"><Plus /> Add payment</Button>} />
       </div>
-      <p className="mb-4 text-sm text-muted">
-        <span className="font-semibold text-success">{formatMoney(paid, currency)} received</span> of {formatMoney(scheduled, currency)} scheduled
-        {contractValue && scheduled !== contractValue ? ` · contract ${formatMoney(contractValue, currency)}` : ""}
+      <p className="mb-4 text-[13px] text-muted">
+        <span className="font-semibold text-success">{formatMoney(received, currency)} received</span> of {formatMoney(scheduled, currency)} scheduled
+        {contractValue && left > 0 ? <span> · {formatMoney(left, currency)} of the contract not scheduled yet</span> : null}
       </p>
-      {milestones.length === 0 ? (
-        <EmptyState compact icon={<Flag />} title="No milestones" description="Split the contract into payments, e.g. 50% advance and 50% on delivery." />
+      {dues.length === 0 ? (
+        <EmptyState compact icon={<Flag />} title="No payments scheduled" description="Split the contract, e.g. 50% advance and 50% on delivery. Each one shows in Collections." />
       ) : (
         <ul className="divide-y divide-line">
-          {milestones.map((m) => {
-            const overdue = !m.paid && m.due_date && m.due_date < today;
+          {dues.map((d) => {
+            const state = dueState(d, today);
             return (
-              <li key={m.id} className="flex flex-wrap items-center gap-3 py-3">
+              <li key={d.id} className="flex flex-wrap items-center gap-3 py-3">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold">{m.name}</p>
-                  <p className={cn("text-xs", overdue ? "font-semibold text-danger" : "text-muted")}>
-                    {m.due_date ? (m.paid ? `Due ${formatDayMonth(m.due_date)}` : dueLabel(m.due_date, today)) : "No due date"}
+                  <p className={cn("truncate text-sm font-semibold", d.status === "cancelled" && "text-muted line-through")}>{d.title}</p>
+                  <p className={cn("text-xs", state === "overdue" ? "font-semibold text-danger" : "text-muted")}>
+                    {d.status === "paid" ? `Paid ${d.paid_at ? formatDayMonth(d.paid_at.slice(0, 10)) : ""}` : d.status === "cancelled" ? "Cancelled" : dueLabel(d.due_date, today)}
+                    {d.status === "pending" && d.amount_paid ? ` · ${formatMoney(d.amount_paid, d.currency)} received` : ""}
                   </p>
                 </div>
-                <span className="tabular text-sm font-bold">{formatMoney(m.amount, currency)}</span>
-                {m.paid ? (
-                  <Pill tone="success">Paid</Pill>
-                ) : (
-                  <PaymentDialog
-                    title={`Mark "${m.name}" paid`}
-                    description={`Records ${formatMoney(m.amount, currency)} as project income.`}
-                    currency={currency}
-                    amount={m.amount}
-                    submitLabel="Mark paid"
-                    trigger={<Button variant="outline" size="pill" disabled={m.amount <= 0}>Mark paid</Button>}
-                    onSubmit={(values) =>
-                      markMilestonePaidAction({
-                        id: m.id,
-                        paid_on: values.paid_on,
-                        method: values.method as never,
-                        reference: values.reference,
-                        receipt_url: values.receipt_url,
-                        notes: values.notes,
-                      })
-                    }
-                  />
-                )}
-                {!m.paid ? (
-                  <MilestoneDialog
-                    projectId={projectId}
-                    currency={currency}
-                    milestone={m}
-                    trigger={
-                      <button type="button" className="rounded-full p-1.5 text-muted hover:text-fg" aria-label={`Edit ${m.name}`}>
-                        <Pencil className="size-4" />
-                      </button>
-                    }
-                  />
-                ) : null}
-                {!m.paid || canDeletePaid ? (
-                  <button type="button" onClick={() => setRemove(m)} className="rounded-full p-1.5 text-muted hover:text-danger" aria-label={`Delete ${m.name}`}>
-                    <Trash2 className="size-4" />
-                  </button>
-                ) : null}
+                <span className="tabular text-sm font-bold">{formatMoney(d.amount, d.currency)}</span>
+                {d.status === "paid" ? <Pill tone="success">Paid</Pill> : d.status === "pending" ? <DuePayButton due={d} payer={clientName} /> : <Pill>Cancelled</Pill>}
+                <DueMenu due={d} clients={options.clients} projects={options.projects} />
               </li>
             );
           })}
         </ul>
       )}
-      <Confirm
-        open={remove !== null}
-        onOpenChange={(open) => !open && setRemove(null)}
-        title={`Delete milestone "${remove?.name}"?`}
-        description={remove?.paid ? "Its income transaction stays in Payments. Delete that separately if it was recorded by mistake." : undefined}
-        confirmLabel="Delete"
-        danger
-        onConfirm={async () => {
-          if (!remove) return;
-          const result = await deleteMilestoneAction({ id: remove.id });
-          if (!result.ok) toast.error(result.error);
-        }}
-      />
     </Card>
-  );
-}
-
-function MilestoneDialog({
-  projectId,
-  currency,
-  milestone,
-  trigger,
-}: {
-  projectId: string;
-  currency: string;
-  milestone?: Tables<"milestones">;
-  trigger: React.ReactNode;
-}) {
-  const [open, setOpen] = React.useState(false);
-  const defaults = { name: milestone?.name ?? "", amount: milestone ? String(milestone.amount / 100) : "", due_date: milestone?.due_date ?? "" };
-  const { register, handleSubmit, reset, formState, setError } = useForm({ defaultValues: defaults });
-  const submit = handleSubmit(async (values) => {
-    const result = await saveMilestoneAction({ id: milestone?.id, project_id: projectId, ...values });
-    if (!result.ok) {
-      for (const [name, message] of Object.entries(result.fieldErrors ?? {})) setError(name as "name", { message });
-      toast.error(result.error);
-      return;
-    }
-    toast.success(milestone ? "Milestone updated" : "Milestone added");
-    setOpen(false);
-  });
-  return (
-    <Dialog open={open} onOpenChange={(next) => { setOpen(next); if (next) reset(defaults); }}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent title={milestone ? "Edit milestone" : "Add milestone"} size="sm">
-        <form onSubmit={submit} noValidate>
-          <FormGrid className="sm:grid-cols-1">
-            <Field label="Name" htmlFor="ms-name" error={formState.errors.name?.message}>
-              <Input placeholder="e.g. Advance 50%" {...register("name")} />
-            </Field>
-            <Field label={`Amount (${currency})`} htmlFor="ms-amount" error={formState.errors.amount?.message}>
-              <Input type="number" inputMode="decimal" min="0" step="0.01" {...register("amount")} />
-            </Field>
-            <Field label="Due date" htmlFor="ms-due" error={formState.errors.due_date?.message}>
-              <Input type="date" {...register("due_date")} />
-            </Field>
-          </FormGrid>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button type="submit" size="lg" loading={formState.isSubmitting}>Save</Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
   );
 }
 
@@ -326,7 +226,7 @@ export function ProjectDangerZone({ id, title }: { id: string; title: string }) 
         open={open}
         onOpenChange={setOpen}
         title={`Delete "${title}"?`}
-        description="Tasks, milestones and team assignments are removed. Recorded payments stay in Payments without the project link. This cannot be undone."
+        description="Tasks and team assignments are removed. Payment requests and recorded payments stay, without the project link. This cannot be undone."
         confirmLabel="Delete project"
         danger
         onConfirm={async () => {

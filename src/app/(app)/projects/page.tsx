@@ -72,7 +72,7 @@ async function Projects({ searchParams }: { searchParams: SearchParams }) {
 
   return (
     <div className="flex flex-col gap-7">
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 wide:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-5 wide:grid-cols-4">
         <KpiCard icon={<Rocket />} tone="accent" label={finance ? "Active projects" : "My active projects"} value={open.count ?? 0} />
         <KpiCard icon={<Folder />} tone="warning" label="In review" value={review.count ?? 0} />
         <KpiCard icon={<PackageCheck />} tone="success" label="Delivered this month" value={deliveredMonth.count ?? 0} />
@@ -116,7 +116,7 @@ async function Projects({ searchParams }: { searchParams: SearchParams }) {
                   <Card className="grid grid-cols-[auto_1fr_auto] items-center gap-x-4 gap-y-3 px-4 py-4 hover:border-line-strong sm:px-5 lg:grid-cols-[auto_1.5fr_1.1fr_1fr_1fr_auto]">
                     <IconCircle tone={meta.tone} size="md" className="rounded-[16px]">{meta.icon}</IconCircle>
                     <div className="min-w-0">
-                      <Link href={`/projects/${project.id}`} className="block truncate text-[15px] font-bold hover:text-accent-fg">{project.title}</Link>
+                      <Link href={`/projects/${project.id}`} className="block truncate text-[15px] font-bold hover:text-primary">{project.title}</Link>
                       <p className="truncate text-sm text-muted">{project.clients?.business_name}</p>
                     </div>
                     <div className="justify-self-end lg:order-last">

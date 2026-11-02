@@ -64,7 +64,7 @@ export function ListToolbar({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder={searchPlaceholder}
-              className="h-10 w-full rounded-full border border-line bg-surface pr-4 pl-10 text-sm text-fg placeholder:text-muted hover:border-line-strong focus-visible:border-accent-fg focus-visible:outline-none"
+              className="h-10 w-full rounded-full border border-line bg-surface pr-4 pl-10 text-sm text-fg placeholder:text-muted hover:border-line-strong focus-visible:border-primary focus-visible:outline-none"
             />
           </label>
         ) : null}
@@ -79,13 +79,13 @@ export function ListToolbar({
           />
         ))}
         {dates ? (
-          <div className="flex items-center gap-2">
+          <div className="flex w-full items-center gap-2 sm:w-auto">
             <input
               type="date"
               aria-label="From date"
               value={params.get("from") ?? ""}
               onChange={(event) => update({ from: event.target.value || null })}
-              className="h-10 rounded-full border border-line bg-surface px-4 text-sm text-fg focus-visible:border-accent-fg focus-visible:outline-none"
+              className="h-10 min-w-0 flex-1 rounded-full border border-line bg-surface px-4 text-sm text-fg focus-visible:border-primary focus-visible:outline-none sm:flex-none"
             />
             <span className="text-sm text-muted">to</span>
             <input
@@ -93,7 +93,7 @@ export function ListToolbar({
               aria-label="To date"
               value={params.get("to") ?? ""}
               onChange={(event) => update({ to: event.target.value || null })}
-              className="h-10 rounded-full border border-line bg-surface px-4 text-sm text-fg focus-visible:border-accent-fg focus-visible:outline-none"
+              className="h-10 min-w-0 flex-1 rounded-full border border-line bg-surface px-4 text-sm text-fg focus-visible:border-primary focus-visible:outline-none sm:flex-none"
             />
           </div>
         ) : null}

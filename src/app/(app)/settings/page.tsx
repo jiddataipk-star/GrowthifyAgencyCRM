@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/card";
 import { ErrorState, PageSkeleton } from "@/components/ui/feedback";
 import { LinkTabs } from "@/components/ui/misc";
 import { ActivityFeed } from "@/components/app/activity";
-import { BillingForm, CatalogManager, CompanyForm, DemoDataCard, PreferencesForm, ProfileForm, SessionsList, TeamManager } from "./forms";
+import { CatalogManager, CompanyForm, DemoDataCard, PaymentDetailsForm, PreferencesForm, ProfileForm, SessionsList, TeamManager } from "./forms";
 import { IntegrationsPanel } from "./integrations";
 import { SettingsNotice } from "./notice";
 
@@ -57,13 +57,13 @@ async function Settings({ searchParams }: Props) {
     body = (
       <div className="space-y-10">
         <section>
-          <h3 className="mb-5 text-card font-bold">Company profile</h3>
+          <h3 className="font-display mb-5 text-card font-bold">Company profile</h3>
           <CompanyForm settings={settings} canEdit={finance} />
         </section>
         <section className="border-t border-line pt-8">
-          <h3 className="mb-1 text-card font-bold">Billing & invoice details</h3>
-          <p className="mb-5 text-sm text-muted">Printed on invoices: bank, IBAN, wallets, NTN/STRN.</p>
-          <BillingForm settings={settings} canEdit={owner} />
+          <h3 className="font-display mb-1 text-card font-bold">Payment details</h3>
+          <p className="mb-5 text-sm text-muted">Where clients send money. Added automatically to WhatsApp payment reminders.</p>
+          <PaymentDetailsForm settings={settings} canEdit={owner} />
         </section>
       </div>
     );

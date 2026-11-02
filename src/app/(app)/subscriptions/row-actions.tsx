@@ -9,31 +9,34 @@ import { Confirm } from "@/components/ui/confirm";
 import { PaymentDialog } from "@/components/app/payment-dialog";
 import { formatMoney } from "@/lib/money";
 import { formatDayMonth } from "@/lib/dates";
+import { INTERVAL_LABELS } from "@/lib/constants";
 import type { Option, PlanOption } from "@/lib/data/lookups";
 import type { Tables } from "@/types/db";
 import { SubscriptionFormDialog } from "./subscription-form";
 import { deleteSubscriptionAction, markSubscriptionPaidAction, setSubscriptionStatusAction } from "./actions";
 
-export function MarkPaidButton({ sub }: { sub: Tables<"subscriptions"> }) {
+export function MarkPaidButton({ sub, clientName, variant = "outline" }: { sub: Tables<"subscriptions">; clientName?: string | null; variant?: "outline" | "primary" }) {
   if (sub.status === "cancelled") return null;
   return (
     <PaymentDialog
-      title="Mark paid"
+      title={`Renew · ${clientName ?? sub.name}`}
       description={
         <>
-          {sub.name} · cycle due <b>{formatDayMonth(sub.next_due_date)}</b>. Records the income and moves the next due date forward.
+          {sub.name} · renewal date <b className="text-fg">{formatDayMonth(sub.next_due_date)}</b>. Records the payment and extends it by {INTERVAL_LABELS[sub.interval_months]}.
         </>
       }
       currency={sub.currency}
       amount={sub.amount}
-      amountEditable
-      submitLabel={`Mark paid`}
-      trigger={<Button variant="outline" size="pill">Mark paid</Button>}
+      partyName={clientName}
+      submitLabel="Mark paid & renew"
+      trigger={<Button variant={variant} size={variant === "primary" ? "sm" : "pill"}>Mark paid</Button>}
       onSubmit={(values) =>
         markSubscriptionPaidAction({
           id: sub.id,
           amount: values.amount,
           paid_on: values.paid_on,
+          time: values.time,
+          party_name: values.party_name,
           method: values.method as never,
           reference: values.reference,
           receipt_url: values.receipt_url,

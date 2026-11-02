@@ -22,6 +22,7 @@ function defaults(sub?: Tables<"subscriptions">, clientId?: string): Subscriptio
     client_id: sub?.client_id ?? clientId ?? "",
     plan_id: sub?.plan_id ?? "",
     name: sub?.name ?? "",
+    service_ref: sub?.service_ref ?? "",
     service_type: sub?.service_type ?? "whatsapp_api",
     amount: sub ? sub.amount / 100 : 0,
     currency: sub?.currency ?? "PKR",
@@ -85,7 +86,7 @@ export function SubscriptionFormDialog({
       }}
     >
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent title={subscription ? "Edit subscription" : "Add subscription"} description="Recurring services billed every cycle, e.g. Growthify WhatsApp API." size="lg">
+      <DialogContent title={subscription ? "Edit subscription" : "Add subscription"} description="Prepaid recurring service, e.g. Growthify WhatsApp API or ads management." size="lg">
         {clients.length === 0 ? (
           <p className="text-fg-2">Add a client first.</p>
         ) : (
@@ -107,15 +108,18 @@ export function SubscriptionFormDialog({
               <Field label="Service" htmlFor="sub-service" error={errors.service_type?.message}>
                 <Select options={serviceTypeOptions} {...register("service_type")} />
               </Field>
+              <Field label="API number / account" htmlFor="sub-ref" hint="WhatsApp API number or ad account ID">
+                <Input {...register("service_ref")} />
+              </Field>
               <div className="grid grid-cols-[1fr_110px] gap-3">
-                <Field label="Amount per cycle" htmlFor="sub-amount" error={errors.amount?.message}>
+                <Field label="Price per period" htmlFor="sub-amount" error={errors.amount?.message}>
                   <Input type="number" inputMode="decimal" min="0" step="0.01" {...register("amount")} />
                 </Field>
                 <Field label="Currency" htmlFor="sub-currency">
                   <Select options={currencyOptions.map((o) => ({ value: o.value, label: o.value }))} {...register("currency")} />
                 </Field>
               </div>
-              <Field label="Billing cycle" htmlFor="sub-interval" error={errors.interval_months?.message}>
+              <Field label="Duration (prepaid)" htmlFor="sub-interval" error={errors.interval_months?.message}>
                 <Select options={intervalOptions} {...register("interval_months")} />
               </Field>
               <Field label="Start date" htmlFor="sub-start" error={errors.start_date?.message}>
@@ -135,17 +139,17 @@ export function SubscriptionFormDialog({
                 <Input type="number" min="1" max="31" {...register("billing_day")} />
               </Field>
               <Field
-                label="Next due date"
+                label="Renewal date (next payment)"
                 htmlFor="sub-next"
                 error={errors.next_due_date?.message}
                 hint={
                   !subscription && startDate ? (
                     <button
                       type="button"
-                      className="font-semibold text-accent-fg"
+                      className="font-semibold text-primary"
                       onClick={() => setValue("next_due_date", addBillingMonths(startDate, Number(getValues("interval_months")) || 1, Number(getValues("billing_day")) || 1))}
                     >
-                      Already paid the first cycle? Set to next cycle
+                      Already paid the first period? Move to next renewal
                     </button>
                   ) : undefined
                 }

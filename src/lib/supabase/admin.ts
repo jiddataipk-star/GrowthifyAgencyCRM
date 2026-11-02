@@ -7,7 +7,7 @@ import type { Database } from "@/types/database";
  * Service-role client. BYPASSES Row Level Security — use only on the server for:
  *   - owner bootstrap at first sign-in,
  *   - reading/writing encrypted social tokens,
- *   - the daily cron and the public invoice share link.
+ *   - the daily social-stats cron.
  * Always authorise the caller before using it.
  */
 export function createAdminClient() {

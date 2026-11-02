@@ -33,10 +33,10 @@ import { deleteLeadAction, moveLeadAction } from "./actions";
 
 const STAGES: Enums<"lead_stage">[] = ["new", "contacted", "proposal_sent", "negotiation", "won", "lost"];
 const STAGE_COLOR: Record<Enums<"lead_stage">, string> = {
-  new: "var(--info)",
-  contacted: "var(--accent-fg)",
-  proposal_sent: "var(--warning)",
-  negotiation: "var(--warning)",
+  new: "var(--border-strong)",
+  contacted: "var(--chart-2)",
+  proposal_sent: "var(--chart-4)",
+  negotiation: "var(--primary)",
   won: "var(--success)",
   lost: "var(--danger)",
 };
@@ -144,7 +144,7 @@ export function LeadsBoard({ leads: initial, today }: { leads: Lead[]; today: st
                   <button
                     type="button"
                     onClick={() => setEditing(null)}
-                    className="flex w-full items-center justify-center gap-1.5 rounded-2xl border border-dashed border-line-strong py-3 text-sm font-semibold text-muted hover:border-accent-fg hover:text-accent-fg"
+                    className="flex w-full items-center justify-center gap-1.5 rounded-2xl border border-dashed border-line-strong py-3 text-sm font-semibold text-muted hover:border-primary hover:text-primary"
                   >
                     <Plus className="size-4" /> New lead
                   </button>
@@ -183,7 +183,7 @@ function Column({ stage, count, value, children }: { stage: Enums<"lead_stage">;
       aria-label={`${LEAD_STAGE_LABELS[stage]} (${count})`}
       className={cn(
         "flex w-[272px] shrink-0 snap-start flex-col rounded-card border border-line bg-surface/60 p-3 transition-colors min-[1800px]:w-auto",
-        isOver && "border-accent-fg bg-surface-2",
+        isOver && "border-primary bg-surface-2",
       )}
     >
       <header className="mb-3 px-1.5 pt-1">
@@ -244,7 +244,7 @@ function CardBody({
   const due = lead.next_follow_up && !["won", "lost"].includes(lead.stage) ? lead.next_follow_up : null;
   const overdue = due !== null && due < today;
   return (
-    <article className={cn("rounded-2xl border border-line bg-surface p-3.5", dragging && "rotate-[1.5deg] border-accent-fg shadow-pop")}>
+    <article className={cn("rounded-2xl border border-line bg-surface p-3.5", dragging && "rotate-[1.5deg] border-primary shadow-pop")}>
       <div className="flex items-start gap-2">
         <div
           {...handleProps}
@@ -258,11 +258,11 @@ function CardBody({
       </div>
       <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
         {lead.service_interest ? <span className="font-semibold text-fg-2">{SERVICE_TYPE_SHORT[lead.service_interest]}</span> : null}
-        {lead.est_value ? <span className="tabular font-bold text-accent-fg">{formatMoney(lead.est_value, lead.currency, { compact: true })}</span> : null}
+        {lead.est_value ? <span className="tabular font-bold text-primary">{formatMoney(lead.est_value, lead.currency, { compact: true })}</span> : null}
       </div>
       <div className="mt-2.5 flex items-center justify-between gap-2">
         {due ? (
-          <span className={cn("inline-flex items-center gap-1 text-xs font-semibold", overdue ? "text-danger" : due === today ? "text-warning" : "text-muted")}>
+          <span className={cn("inline-flex items-center gap-1 text-xs font-semibold", overdue ? "text-danger" : due === today ? "text-primary" : "text-muted")}>
             <CalendarClock className="size-3.5" /> {due === today ? "Follow up today" : overdue ? dueLabel(due, today) : formatDayMonth(due)}
           </span>
         ) : lead.stage === "lost" && lead.lost_reason ? (

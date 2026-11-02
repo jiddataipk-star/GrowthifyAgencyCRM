@@ -20,9 +20,10 @@ export type EditableTx = {
   id: string;
   type: "income" | "expense";
   amount: number;
-  tax_withheld: number;
   currency: "PKR" | "USD";
   date: string;
+  time: string | null;
+  party_name: string | null;
   category: TransactionInput["category"];
   method: TransactionInput["method"];
   reference: string | null;
@@ -35,14 +36,19 @@ export type EditableTx = {
   notes: string | null;
 };
 
+function nowTimePK() {
+  return new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Karachi", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date());
+}
+
 function defaults(tx?: EditableTx, type: "income" | "expense" = "income"): TransactionInput {
   return {
     type: tx?.type ?? type,
     amount: tx ? tx.amount / 100 : ("" as unknown as number),
-    tax_withheld: tx ? tx.tax_withheld / 100 : 0,
     currency: tx?.currency ?? "PKR",
     date: tx?.date ?? todayPK(),
-    category: tx?.category ?? (type === "income" ? "project" : "hosting"),
+    time: tx?.time?.slice(0, 5) ?? (tx ? "" : nowTimePK()),
+    party_name: tx?.party_name ?? "",
+    category: tx?.category ?? (type === "income" ? "project" : "software"),
     method: tx?.method ?? "bank_transfer",
     reference: tx?.reference ?? "",
     description: tx?.description ?? "",
@@ -55,6 +61,7 @@ function defaults(tx?: EditableTx, type: "income" | "expense" = "income"): Trans
   };
 }
 
+/** Record money in or out: what for, from/to whom, when (date + time), how, TID, screenshot. */
 export function TransactionFormDialog({
   tx,
   options,
@@ -85,7 +92,7 @@ export function TransactionFormDialog({
       toast.error(result.error);
       return;
     }
-    toast.success(tx ? "Transaction updated" : values.type === "income" ? "Income recorded" : "Expense recorded");
+    toast.success(tx ? "Transaction updated" : values.type === "income" ? "Money in recorded" : "Expense recorded");
     setOpen(false);
   });
 
@@ -98,9 +105,9 @@ export function TransactionFormDialog({
       }}
     >
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent title={tx ? "Edit transaction" : "Add transaction"} description="Linked invoices, milestones and subscriptions update automatically." size="lg">
+      <DialogContent title={tx ? "Edit transaction" : "Add transaction"} description="For payments against a request or renewal, use Mark paid in Collections — it links them automatically." size="lg">
         <form onSubmit={onSubmit} noValidate>
-          <div role="radiogroup" aria-label="Type" className="mb-6 grid grid-cols-2 gap-2 rounded-control bg-surface-2 p-1.5">
+          <div role="radiogroup" aria-label="Type" className="mb-5 grid grid-cols-2 gap-1 rounded-control bg-surface-2 p-1">
             {(["income", "expense"] as const).map((value) => (
               <button
                 key={value}
@@ -109,20 +116,19 @@ export function TransactionFormDialog({
                 aria-checked={type === value}
                 onClick={() => {
                   setValue("type", value);
-                  setValue("category", value === "income" ? "project" : "hosting");
-                  if (value === "expense") setValue("tax_withheld", 0);
+                  setValue("category", value === "income" ? "project" : "software");
                 }}
                 className={cn(
-                  "h-11 rounded-[11px] text-[15px] font-bold transition-colors",
-                  type === value ? (value === "income" ? "bg-success text-white light:text-white" : "bg-danger text-white") : "text-fg-2 hover:text-fg",
+                  "h-9 rounded-[9px] text-[13.5px] font-semibold transition-colors",
+                  type === value ? (value === "income" ? "bg-primary text-white" : "bg-fg text-white") : "text-muted hover:text-fg",
                 )}
               >
-                {value === "income" ? "Income" : "Expense"}
+                {value === "income" ? "Money in" : "Money out (expense)"}
               </button>
             ))}
           </div>
           <FormGrid>
-            <div className="grid grid-cols-[1fr_110px] gap-3">
+            <div className="grid grid-cols-[1fr_96px] gap-3">
               <Field label="Amount" htmlFor="tx-amount" error={errors.amount?.message} required>
                 <Input type="number" inputMode="decimal" min="0" step="0.01" autoFocus {...register("amount")} />
               </Field>
@@ -130,17 +136,25 @@ export function TransactionFormDialog({
                 <Select options={currencyOptions.map((o) => ({ value: o.value, label: o.value }))} {...register("currency")} />
               </Field>
             </div>
-            <Field label="Date" htmlFor="tx-date" error={errors.date?.message} required>
-              <Input type="date" {...register("date")} />
+            <Field label="For what" htmlFor="tx-desc" error={errors.description?.message}>
+              <Input placeholder={type === "income" ? "e.g. Website advance" : "e.g. FESCO bill October"} {...register("description")} />
+            </Field>
+            <Field label={type === "income" ? "Received from (name)" : "Paid to"} htmlFor="tx-party" error={errors.party_name?.message} hint={type === "income" ? "Account title in the SMS" : undefined}>
+              <Input placeholder={type === "income" ? "e.g. NOVA HEALTH CARE PVT" : "e.g. Nayatel"} {...register("party_name")} />
             </Field>
             <Field label="Category" htmlFor="tx-category" error={errors.category?.message}>
               <Select options={categories} {...register("category")} />
             </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Date" htmlFor="tx-date" error={errors.date?.message} required>
+                <Input type="date" {...register("date")} />
+              </Field>
+              <Field label="Time" htmlFor="tx-time" error={errors.time?.message}>
+                <Input type="time" {...register("time")} />
+              </Field>
+            </div>
             <Field label="Method" htmlFor="tx-method" error={errors.method?.message}>
               <Select options={methodOptions} {...register("method")} />
-            </Field>
-            <Field label={type === "income" ? "Received from / description" : "Paid to / description"} htmlFor="tx-desc" error={errors.description?.message}>
-              <Input placeholder={type === "income" ? "e.g. Advance for website" : "e.g. Hosting & API"} {...register("description")} />
             </Field>
             <Field label="Reference / TID" htmlFor="tx-ref" error={errors.reference?.message}>
               <Input placeholder="Bank ref, wallet TID, cheque no." {...register("reference")} />
@@ -151,14 +165,9 @@ export function TransactionFormDialog({
             <Field label="Project" htmlFor="tx-project">
               <Select placeholder="None" options={projects.map((p) => ({ value: p.id, label: p.name }))} {...register("project_id")} />
             </Field>
-            {type === "expense" && (category === "salary" || category === "contractor") ? (
-              <Field label="Employee" htmlFor="tx-employee" hint="Tip: use Team → Pay salary to prevent double payments.">
+            {type === "expense" && (category === "salary" || category === "freelancer") ? (
+              <Field label="Team member" htmlFor="tx-employee" hint="For salaries, Team → Pay salary prevents paying a month twice.">
                 <Select placeholder="None" options={options.employees.map((e) => ({ value: e.id, label: e.name }))} {...register("employee_id")} />
-              </Field>
-            ) : null}
-            {type === "income" ? (
-              <Field label="Tax withheld by client (WHT)" htmlFor="tx-wht" error={errors.tax_withheld?.message} hint="Optional. Deducted at source; not part of cash received.">
-                <Input type="number" inputMode="decimal" min="0" step="0.01" {...register("tax_withheld")} />
               </Field>
             ) : null}
             <div className="sm:col-span-2">

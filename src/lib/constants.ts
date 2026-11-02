@@ -76,14 +76,24 @@ export const SUBSCRIPTION_STATUS_LABELS: Record<Enums<"subscription_status">, st
   cancelled: "Cancelled",
 };
 
-export const INVOICE_STATUS_LABELS: Record<Enums<"invoice_status"> | "overdue", string> = {
-  draft: "Draft",
-  sent: "Sent",
-  partial: "Partly paid",
-  paid: "Paid",
-  void: "Void",
+/** Collections (dues) — display states derived from status, payments and due date. */
+export const DUE_STATE_LABELS = {
+  pending: "Upcoming",
+  due_today: "Due today",
   overdue: "Overdue",
-};
+  partial: "Part paid",
+  paid: "Paid",
+  cancelled: "Cancelled",
+} as const;
+
+/** Prepaid subscription states derived from the renewal date. */
+export const RENEWAL_STATE_LABELS = {
+  active: "Active",
+  expiring: "Renews soon",
+  expired: "Payment due",
+  paused: "Paused",
+  cancelled: "Cancelled",
+} as const;
 
 export const TX_TYPE_LABELS: Record<Enums<"tx_type">, string> = {
   income: "Income",
@@ -93,25 +103,45 @@ export const TX_TYPE_LABELS: Record<Enums<"tx_type">, string> = {
 export const INCOME_CATEGORIES = ["project", "subscription", "other"] as const satisfies readonly Enums<"tx_category">[];
 export const EXPENSE_CATEGORIES = [
   "salary",
-  "contractor",
-  "hosting",
+  "freelancer",
+  "rent",
+  "utilities",
   "software",
   "ads_spend",
+  "travel",
   "office",
   "tax",
   "other",
 ] as const satisfies readonly Enums<"tx_category">[];
 
 export const CATEGORY_LABELS: Record<Enums<"tx_category">, string> = {
-  project: "Project",
-  subscription: "Subscription",
-  salary: "Salary",
-  contractor: "Freelancer / contractor",
-  hosting: "Hosting & servers",
-  software: "Software & API",
+  project: "Project payment",
+  subscription: "Subscription / renewal",
+  salary: "Salaries",
+  freelancer: "Freelancers",
+  rent: "Office rent",
+  utilities: "Bills (electricity, internet, mobile)",
+  software: "Software, hosting & AI tools",
   ads_spend: "Ads spend",
-  office: "Office",
+  travel: "Petrol & travel",
+  office: "Office & refreshments",
   tax: "Tax (FBR / PRA)",
+  other: "Other",
+};
+
+/** Short names for charts and tight spaces. */
+export const CATEGORY_SHORT: Record<Enums<"tx_category">, string> = {
+  project: "Projects",
+  subscription: "Subscriptions",
+  salary: "Salaries",
+  freelancer: "Freelancers",
+  rent: "Office rent",
+  utilities: "Bills",
+  software: "Software & tools",
+  ads_spend: "Ads spend",
+  travel: "Petrol & travel",
+  office: "Office",
+  tax: "Tax",
   other: "Other",
 };
 
@@ -143,14 +173,14 @@ export const PLATFORM_LABELS: Record<Enums<"social_platform">, string> = {
   tiktok: "TikTok",
 };
 
-/** Brand tints for platform monograms (text on dark surfaces). */
+/** Chart line colours per platform (brand greens, black and greys only). */
 export const PLATFORM_COLORS: Record<Enums<"social_platform">, string> = {
-  facebook: "#7FA7FF",
-  instagram: "#FF8FB1",
-  youtube: "#FF6B6B",
-  threads: "#E6ECE9",
-  linkedin: "#6FB6FF",
-  tiktok: "#5EEAD4",
+  facebook: "#0b3d2c",
+  instagram: "#3f8f6c",
+  youtube: "#0b1210",
+  threads: "#9db8ab",
+  linkedin: "#5f6b66",
+  tiktok: "#cdd7d2",
 };
 
 export const SOCIAL_STATUS_LABELS: Record<Enums<"social_status">, string> = {
@@ -160,10 +190,10 @@ export const SOCIAL_STATUS_LABELS: Record<Enums<"social_status">, string> = {
 };
 
 export const INTERVAL_LABELS: Record<number, string> = {
-  1: "Monthly",
-  3: "Quarterly",
-  6: "Every 6 months",
-  12: "Yearly",
+  1: "1 month",
+  3: "3 months",
+  6: "6 months",
+  12: "1 year",
 };
 
 export const PAKISTAN_CITIES = [
@@ -203,7 +233,7 @@ export const currencyOptions = [
   { value: "PKR", label: "PKR — Pakistani Rupee" },
   { value: "USD", label: "USD — US Dollar" },
 ];
-export const intervalOptions = [1, 3, 6, 12].map((months) => ({
+export const intervalOptions = [1, 3, 12, 6].map((months) => ({
   value: String(months),
   label: INTERVAL_LABELS[months],
 }));

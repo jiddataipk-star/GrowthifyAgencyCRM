@@ -100,13 +100,6 @@ export const projectSchema = z
   });
 export type ProjectInput = z.input<typeof projectSchema>;
 
-export const milestoneSchema = z.object({
-  project_id: id,
-  name: requiredText("Name", 120),
-  amount: money,
-  due_date: optionalDate,
-});
-
 export const taskSchema = z.object({
   project_id: id,
   title: requiredText("Task", 200),
@@ -115,9 +108,14 @@ export const taskSchema = z.object({
 });
 
 /* ── Money ─────────────────────────────────────────────────────────────── */
+const time = z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, "Pick a time").optional().or(z.literal(""));
+
+/** What every received or paid amount records (Pakistani reality: TID + screenshot). */
 export const paymentFields = {
   paid_on: isoDate,
+  time,
   method: paymentMethod,
+  party_name: optionalText(120),
   reference: optionalText(120),
   receipt_url: optionalText(500),
   notes: optionalText(1000),
@@ -138,6 +136,7 @@ export const subscriptionSchema = z.object({
   client_id: id,
   plan_id: optionalId,
   name: requiredText("Name", 160),
+  service_ref: optionalText(120),
   service_type: serviceType,
   amount: money,
   currency,
@@ -150,14 +149,17 @@ export const subscriptionSchema = z.object({
 });
 export type SubscriptionInput = z.input<typeof subscriptionSchema>;
 
+const txCategory = z.enum(["project", "subscription", "salary", "freelancer", "rent", "utilities", "software", "ads_spend", "travel", "office", "tax", "other"]);
+
 export const transactionSchema = z
   .object({
     type: z.enum(["income", "expense"]),
     amount: positiveMoney,
-    tax_withheld: money.default(0),
     currency,
     date: isoDate,
-    category: z.enum(["project", "subscription", "salary", "contractor", "hosting", "software", "ads_spend", "office", "tax", "other"]),
+    time,
+    party_name: optionalText(120),
+    category: txCategory,
     method: paymentMethod,
     reference: optionalText(120),
     description: optionalText(200),
@@ -172,39 +174,61 @@ export const transactionSchema = z
     (v) =>
       v.type === "income"
         ? ["project", "subscription", "other"].includes(v.category)
-        : ["salary", "contractor", "hosting", "software", "ads_spend", "office", "tax", "other"].includes(v.category),
+        : ["salary", "freelancer", "rent", "utilities", "software", "ads_spend", "travel", "office", "tax", "other"].includes(v.category),
     { path: ["category"], message: "This category doesn't match the type" },
   );
 export type TransactionInput = z.input<typeof transactionSchema>;
 
-export const invoiceItemSchema = z.object({
-  description: requiredText("Description", 300),
-  qty: z.coerce.number({ error: "Qty" }).positive("Qty > 0").max(100000),
-  unit_price: money,
-});
-
-export const invoiceSchema = z
+/** A payment to collect: a saved client or just a name + number. */
+export const dueSchema = z
   .object({
-    client_id: id,
-    project_id: optionalId,
-    issue_date: isoDate,
-    due_date: isoDate,
+    client_id: optionalId,
+    payer_name: optionalText(120),
+    payer_phone: phone,
+    title: requiredText("What is it for", 200),
+    amount: positiveMoney,
     currency,
-    discount: money.default(0),
-    tax_rate: z.coerce.number().min(0, "0–100").max(100, "0–100"),
-    notes: optionalText(2000),
-    items: z.array(invoiceItemSchema).min(1, "Add at least one line item"),
-    status: z.enum(["draft", "sent"]),
+    due_date: isoDate,
+    project_id: optionalId,
+    notes: optionalText(1000),
   })
-  .refine((v) => v.due_date >= v.issue_date, { path: ["due_date"], message: "Due date can't be before the issue date" });
-export type InvoiceInput = z.input<typeof invoiceSchema>;
+  .refine((v) => Boolean(v.client_id) || Boolean(v.payer_name?.trim()), { path: ["payer_name"], message: "Choose a client or enter a name" });
+export type DueInput = z.input<typeof dueSchema>;
 
-export const invoicePaymentSchema = z.object({
+export const duePaymentSchema = z.object({
   id,
   amount: positiveMoney,
-  tax_withheld: money.default(0),
+  settle: z.boolean().default(false),
   ...paymentFields,
 });
+
+/** New subscription in one step (e.g. a WhatsApp API client), optionally paid now. */
+export const startSubscriptionSchema = z
+  .object({
+    client_id: optionalId,
+    new_business_name: optionalText(160),
+    new_contact_name: optionalText(120),
+    new_phone: phone,
+    new_city: optionalText(80),
+    plan_id: optionalId,
+    name: requiredText("Plan name", 160),
+    service_type: serviceType,
+    amount: money,
+    currency,
+    interval_months: z.coerce.number().int().refine((v) => [1, 3, 6, 12].includes(v), "Pick a duration"),
+    start_date: isoDate,
+    service_ref: optionalText(120),
+    notes: optionalText(1000),
+    paid_now: z.boolean(),
+    method: paymentMethod,
+    party_name: optionalText(120),
+    reference: optionalText(120),
+    paid_on: optionalDate,
+    time,
+    receipt_url: optionalText(500),
+  })
+  .refine((v) => Boolean(v.client_id) || Boolean(v.new_business_name?.trim()), { path: ["new_business_name"], message: "Choose a client or enter a business name" });
+export type StartSubscriptionInput = z.input<typeof startSubscriptionSchema>;
 
 /* ── Team ──────────────────────────────────────────────────────────────── */
 export const employeeSchema = z.object({
@@ -248,9 +272,8 @@ export const companySchema = z.object({
   logo_path: optionalText(500),
 });
 
-export const billingSchema = z.object({
-  ntn: optionalText(30),
-  strn: optionalText(30),
+/** Bank / wallet details sent to clients in WhatsApp payment reminders (owner only). */
+export const paymentDetailsSchema = z.object({
   bank_name: optionalText(120),
   account_title: optionalText(120),
   account_number: optionalText(60),
@@ -261,13 +284,10 @@ export const billingSchema = z.object({
     .regex(/^([A-Z]{2}\d{2}[A-Z0-9]{10,30})?$/, "IBAN looks wrong (e.g. PK36SCBL0000001123456702)")
     .optional()
     .or(z.literal("")),
-  wallet_details: optionalText(300),
-  payment_notes: optionalText(500),
-  invoice_prefix: z.string().trim().toUpperCase().regex(/^[A-Z0-9]{1,6}$/, "1–6 letters or digits"),
-  default_tax_rate: z.coerce.number().min(0).max(100),
-  default_due_days: z.coerce.number().int().min(0).max(120),
-  invoice_footer: optionalText(500),
-  show_whatsapp_on_invoice: z.boolean(),
+  jazzcash_number: phone,
+  easypaisa_number: phone,
+  raast_id: optionalText(60),
+  payment_notes: optionalText(300),
 });
 
 export const preferencesSchema = z.object({

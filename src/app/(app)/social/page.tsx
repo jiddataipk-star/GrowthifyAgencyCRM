@@ -100,7 +100,7 @@ async function Social() {
         </Card>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 wide:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:gap-5 wide:grid-cols-3">
         <KpiCard icon={<Users />} tone="accent" label="Total followers" value={formatNumber(totalFollowers)} sub={`${tracked.length} platforms tracked`} subTone="muted" />
         <KpiCard icon={<TrendingUp />} tone="success" label="Gained in 30 days" value={`${gained30 >= 0 ? "+" : "−"}${formatNumber(Math.abs(gained30))}`} subTone={gained30 >= 0 ? "success" : "danger"} sub="Across platforms" />
         <KpiCard icon={<Eye />} tone="info" label="Views in 30 days" value={formatNumber(views30)} sub={reach30 ? `${formatNumber(reach30)} reach` : "Reach when available"} subTone="muted" />
@@ -118,7 +118,7 @@ async function Social() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-bold">{PLATFORM_LABELS[account.platform]}</p>
                     {account.profile_url ? (
-                      <a href={account.profile_url} target="_blank" rel="noopener noreferrer" className="block truncate text-sm text-muted hover:text-accent-fg">
+                      <a href={account.profile_url} target="_blank" rel="noopener noreferrer" className="block truncate text-sm text-muted hover:text-primary">
                         {account.handle ? (account.handle.startsWith("@") ? account.handle : `@${account.handle}`) : account.name}
                       </a>
                     ) : (
@@ -153,7 +153,7 @@ async function Social() {
                     )}
                   </div>
                 </div>
-                {account.last_error && account.status !== "not_connected" ? <p className="-mt-2 line-clamp-2 text-xs text-warning" title={account.last_error}>{account.last_error}</p> : null}
+                {account.last_error && account.status !== "not_connected" ? <p className="-mt-2 line-clamp-2 text-xs text-danger" title={account.last_error}>{account.last_error}</p> : null}
               </Card>
             );
           })}
@@ -205,7 +205,7 @@ async function Social() {
                       <tr key={post.id} className="border-t border-line [&>td]:h-[56px]">
                         <td className="tabular text-muted">{String(index + 1).padStart(2, "0")}.</td>
                         <td className="max-w-[320px]">
-                          {post.url ? <a href={post.url} target="_blank" rel="noopener noreferrer" className="block truncate font-semibold hover:text-accent-fg">{post.title ?? "Untitled"}</a> : <span className="block truncate font-semibold">{post.title ?? "Untitled"}</span>}
+                          {post.url ? <a href={post.url} target="_blank" rel="noopener noreferrer" className="block truncate font-semibold hover:text-primary">{post.title ?? "Untitled"}</a> : <span className="block truncate font-semibold">{post.title ?? "Untitled"}</span>}
                         </td>
                         <td className="text-fg-2">{account ? PLATFORM_LABELS[account.platform] : "—"}</td>
                         <td className="whitespace-nowrap text-fg-2">{post.published_at ? formatDayMonth(todayPK(new Date(post.published_at))) : "—"}</td>

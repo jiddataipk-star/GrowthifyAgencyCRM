@@ -19,7 +19,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { FilesPanel } from "@/components/app/files-panel";
 import { ActivityFeed } from "@/components/app/activity";
 import { ProjectFormDialog } from "../project-form";
-import { MilestonesCard, ProgressControl, ProjectDangerZone, TasksCard } from "./project-widgets";
+import { PaymentScheduleCard, ProgressControl, ProjectDangerZone, TasksCard } from "./project-widgets";
 
 export const metadata: Metadata = { title: "Project" };
 
@@ -41,10 +41,10 @@ async function ProjectDetail({ params, searchParams }: Props) {
   const supabase = await createClient();
   const today = todayPK();
 
-  const [projectRes, membersRes, milestonesRes, tasksRes, filesRes, teamRes] = await Promise.all([
+  const [projectRes, membersRes, duesRes, tasksRes, filesRes, teamRes] = await Promise.all([
     supabase.from("projects").select("*, clients(id, business_name)").eq("id", id).maybeSingle(),
     supabase.from("project_members").select("team_member_id, team_members(id, name, email, avatar_url)").eq("project_id", id),
-    finance ? supabase.from("milestones").select("*").eq("project_id", id).order("position") : Promise.resolve({ data: [] }),
+    finance ? supabase.from("dues").select("*").eq("project_id", id).order("position").order("due_date") : Promise.resolve({ data: [] }),
     supabase.from("tasks").select("id, title, done, due_date, assignee_id, created_by").eq("project_id", id).order("done").order("position"),
     supabase.from("files").select("id, name, size, created_at").eq("entity", "project").eq("entity_id", id).order("created_at", { ascending: false }),
     supabase.from("team_members").select("id, name, email").eq("active", true).order("name"),
@@ -53,7 +53,7 @@ async function ProjectDetail({ params, searchParams }: Props) {
   if (!project) notFound();
 
   const tabs = [
-    { value: "work", label: "Tasks & milestones" },
+    { value: "work", label: finance ? "Tasks & payments" : "Tasks" },
     { value: "files", label: "Files" },
     ...(finance ? [{ value: "activity", label: "Activity" }] : []),
   ];
@@ -66,8 +66,8 @@ async function ProjectDetail({ params, searchParams }: Props) {
   let activity = null;
   let actors: Record<string, string> = {};
   if (tab === "activity" && finance) {
-    const milestoneIds = (milestonesRes.data ?? []).map((m) => m.id);
-    const { data } = await supabase.from("activity_log").select("id, entity, action, label, diff, created_at, actor_id").in("entity_id", [id, ...milestoneIds]).order("created_at", { ascending: false }).limit(100);
+    const dueIds = (duesRes.data ?? []).map((d) => d.id);
+    const { data } = await supabase.from("activity_log").select("id, entity, action, label, diff, created_at, actor_id").in("entity_id", [id, ...dueIds]).order("created_at", { ascending: false }).limit(100);
     activity = data ?? [];
     actors = await loadActors(supabase);
   }
@@ -88,7 +88,7 @@ async function ProjectDetail({ params, searchParams }: Props) {
               </div>
               <p className="mt-1 text-fg-2">
                 {finance && project.clients ? (
-                  <Link href={`/clients/${project.clients.id}`} className="font-semibold hover:text-accent-fg">{project.clients.business_name}</Link>
+                  <Link href={`/clients/${project.clients.id}`} className="font-semibold hover:text-primary">{project.clients.business_name}</Link>
                 ) : (
                   project.clients?.business_name
                 )}{" "}
@@ -159,8 +159,17 @@ async function ProjectDetail({ params, searchParams }: Props) {
       {tab === "work" ? (
         <div className={finance ? "grid grid-cols-1 gap-7 xl:grid-cols-2" : ""}>
           <TasksCard projectId={project.id} tasks={tasksRes.data ?? []} team={team} today={today} />
-          {finance ? (
-            <MilestonesCard projectId={project.id} currency={project.currency} contractValue={project.value} milestones={milestonesRes.data ?? []} today={today} canDeletePaid={isOwner(member.role)} />
+          {finance && options && project.clients ? (
+            <PaymentScheduleCard
+              projectId={project.id}
+              clientId={project.client_id}
+              clientName={project.clients.business_name}
+              currency={project.currency}
+              contractValue={project.value}
+              dues={duesRes.data ?? []}
+              today={today}
+              options={{ clients: options.clients, projects: options.projects }}
+            />
           ) : null}
         </div>
       ) : null}

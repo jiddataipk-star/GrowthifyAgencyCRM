@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { action, must } from "@/lib/action";
-import { markPaidSchema, milestoneSchema, projectSchema, taskSchema } from "@/lib/validation";
+import { projectSchema, taskSchema } from "@/lib/validation";
 import { toMinor } from "@/lib/money";
 import { emptyToNull } from "@/lib/utils";
 
@@ -61,34 +61,6 @@ export const updateProjectProgressAction = action(
 
 export const deleteProjectAction = action("owner", z.object({ id: z.guid() }), async ({ id }, { supabase }) => {
   must(await supabase.from("projects").delete().eq("id", id));
-});
-
-/* ── Milestones ───────────────────────────────────────────────────────── */
-export const saveMilestoneAction = action("finance", milestoneSchema.extend({ id: z.guid().optional() }), async ({ id, ...input }, { supabase }) => {
-  const row = { project_id: input.project_id, name: input.name, amount: toMinor(input.amount), due_date: emptyToNull(input.due_date ?? "") };
-  if (id) must(await supabase.from("milestones").update(row).eq("id", id));
-  else {
-    const { count } = await supabase.from("milestones").select("id", { count: "exact", head: true }).eq("project_id", input.project_id);
-    must(await supabase.from("milestones").insert({ ...row, position: count ?? 0 }));
-  }
-});
-
-export const deleteMilestoneAction = action("finance", z.object({ id: z.guid() }), async ({ id }, { supabase }) => {
-  must(await supabase.from("milestones").delete().eq("id", id));
-});
-
-/** Marking a milestone paid records the income transaction (atomic, in the database). */
-export const markMilestonePaidAction = action("finance", markPaidSchema, async (input, { supabase }) => {
-  must(
-    await supabase.rpc("mark_milestone_paid", {
-      p_milestone_id: input.id,
-      p_paid_on: input.paid_on,
-      p_method: input.method,
-      p_reference: input.reference || undefined,
-      p_receipt_url: input.receipt_url || undefined,
-      p_notes: input.notes || undefined,
-    }),
-  );
 });
 
 /* ── Tasks ────────────────────────────────────────────────────────────── */

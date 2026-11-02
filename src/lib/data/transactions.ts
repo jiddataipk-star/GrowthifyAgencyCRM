@@ -3,11 +3,11 @@ import type { ServerClient } from "@/lib/supabase/server";
 import { ilikeTerm, isoParam, oneOf } from "@/lib/data/query";
 import { param, isUuid } from "@/lib/utils";
 
-const CATEGORIES = ["project", "subscription", "salary", "contractor", "hosting", "software", "ads_spend", "office", "tax", "other"] as const;
+const CATEGORIES = ["project", "subscription", "salary", "freelancer", "rent", "utilities", "software", "ads_spend", "travel", "office", "tax", "other"] as const;
 const METHODS = ["bank_transfer", "raast", "jazzcash", "easypaisa", "cash", "cheque", "card", "payoneer", "wise", "other"] as const;
 
 export const TX_SELECT =
-  "id, type, amount, tax_withheld, currency, date, category, method, reference, description, receipt_url, notes, client_id, project_id, subscription_id, invoice_id, employee_id, clients(business_name), projects(title), employees(name), invoices(number)" as const;
+  "id, type, amount, currency, date, time, party_name, category, method, reference, description, receipt_url, notes, client_id, project_id, subscription_id, due_id, employee_id, created_at, clients(business_name), projects(title), employees(name), subscriptions(name)" as const;
 
 export type TxFilters = ReturnType<typeof parseTxFilters>;
 
@@ -33,6 +33,7 @@ export function transactionsQuery(supabase: ServerClient, filters: TxFilters, op
     .from("transactions")
     .select(TX_SELECT, options.count ? { count: "exact" } : undefined)
     .order("date", { ascending: false })
+    .order("time", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
   if (filters.type) query = query.eq("type", filters.type);
   if (filters.from) query = query.gte("date", filters.from);
@@ -42,6 +43,6 @@ export function transactionsQuery(supabase: ServerClient, filters: TxFilters, op
   if (filters.category) query = query.eq("category", filters.category);
   if (filters.method) query = query.eq("method", filters.method);
   if (filters.currency) query = query.eq("currency", filters.currency);
-  if (filters.term) query = query.or(`description.ilike.${filters.term},reference.ilike.${filters.term},notes.ilike.${filters.term}`);
+  if (filters.term) query = query.or(`description.ilike.${filters.term},party_name.ilike.${filters.term},reference.ilike.${filters.term},notes.ilike.${filters.term}`);
   return query;
 }

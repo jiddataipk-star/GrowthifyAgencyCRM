@@ -68,7 +68,7 @@ async function Team() {
 
   return (
     <div className="flex flex-col gap-7">
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 wide:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-5 wide:grid-cols-4">
         <KpiCard icon={<UserRound />} tone="accent" label="Team members" value={active.length} sub={`${employees.filter((e) => e.status === "on_leave").length} on leave`} subTone="muted" />
         <KpiCard icon={<Wallet />} tone="info" label="Monthly payroll" value={formatMoney(payroll, "PKR")} sub="Active + on leave" subTone="muted" />
         <KpiCard icon={<BadgeCheck />} tone="success" label={`Paid for ${formatMonthShort(monthStart(today))}`} value={formatMoney(paidThisMonth, "PKR")} />
@@ -124,7 +124,7 @@ async function Team() {
                               title={`${formatMonthShort(`${m}-01`)}: ${beforeJoin ? "before joining" : isPaid ? "paid" : "not paid"}`}
                               className={cn(
                                 "flex h-7 w-10 items-center justify-center rounded-lg text-[11px] font-bold",
-                                beforeJoin ? "bg-surface-2 text-muted/50" : isPaid ? "bg-[color-mix(in_srgb,var(--success)_18%,transparent)] text-success" : m === thisMonth ? "border border-dashed border-warning text-warning" : "bg-[color-mix(in_srgb,var(--danger)_14%,transparent)] text-danger",
+                                beforeJoin ? "bg-surface-2 text-muted/50" : isPaid ? "bg-primary text-primary-ink" : m === thisMonth ? "border border-dashed border-primary text-primary" : "bg-danger-tint text-danger",
                               )}
                             >
                               {formatMonthShort(`${m}-01`)}
@@ -141,7 +141,7 @@ async function Team() {
           </ul>
         )}
         <p className="mt-4 text-sm text-muted">
-          Logins and roles are managed in <Link href="/settings?tab=team" className="font-semibold text-accent-fg hover:underline">Settings → Team &amp; roles</Link>.
+          Logins and roles are managed in <Link href="/settings?tab=team" className="font-semibold text-primary hover:underline">Settings → Team &amp; roles</Link>.
         </p>
       </Section>
     </div>

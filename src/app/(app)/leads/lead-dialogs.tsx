@@ -163,7 +163,7 @@ export function ConvertLeadDialog({ lead, onOpenChange }: { lead: Lead | null; o
         {clientId ? (
           <div className="py-4 text-center">
             <p className="text-card font-bold">Client created 🎉</p>
-            <p className="mt-1 text-sm text-fg-2">Add their logo, subscriptions and invoices from the client page.</p>
+            <p className="mt-1 text-sm text-fg-2">Add their logo, subscriptions and payments to collect from the client page.</p>
             <div className="mt-6 flex justify-center gap-3">
               <Button variant="secondary" onClick={() => onOpenChange(false)}>Back to pipeline</Button>
               <Button asChild><Link href={`/clients/${clientId}`}>Open client</Link></Button>

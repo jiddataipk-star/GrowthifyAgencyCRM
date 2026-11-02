@@ -9,7 +9,7 @@ export function Toaster() {
       toastOptions={{
         classNames: {
           toast:
-            "!bg-surface !text-fg !border !border-line !rounded-2xl !shadow-pop !font-sans !text-[14px] !font-semibold",
+            "!bg-white !text-fg !border !border-line !rounded-xl !shadow-pop !font-sans !text-[13.5px] !font-semibold",
           description: "!text-fg-2 !font-medium",
           success: "[&_[data-icon]]:!text-success",
           error: "[&_[data-icon]]:!text-danger",

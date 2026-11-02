@@ -132,7 +132,7 @@ export function ProjectFormDialog({
                       return (
                         <label
                           key={member.id}
-                          className={`flex cursor-pointer items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-semibold transition-colors ${checked ? "border-accent-fg text-accent-fg" : "border-line text-fg-2 hover:border-line-strong"}`}
+                          className={`flex cursor-pointer items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-semibold transition-colors ${checked ? "border-primary text-primary" : "border-line text-fg-2 hover:border-line-strong"}`}
                         >
                           <Checkbox
                             checked={checked}

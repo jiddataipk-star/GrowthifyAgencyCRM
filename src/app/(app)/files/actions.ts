@@ -4,7 +4,7 @@ import { z } from "zod";
 import { action, must } from "@/lib/action";
 
 const fileSchema = z.object({
-  entity: z.enum(["client", "project", "invoice", "transaction", "employee"]),
+  entity: z.enum(["client", "project", "transaction", "employee"]),
   entity_id: z.guid(),
   path: z.string().min(3).max(500),
   name: z.string().min(1).max(200),

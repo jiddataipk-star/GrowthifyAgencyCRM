@@ -39,7 +39,7 @@ You'll end up with these environment variables (full list with comments in [`.en
    npx supabase db push
    ```
 
-6. Check: **Table Editor** shows `clients`, `projects`, `invoices`, … and `settings` has one row "Growthify Agency".
+6. Check: **Table Editor** shows `clients`, `projects`, `dues`, `transactions`, … and `settings` has one row "Growthify Agency".
 7. **Authentication → Sign In / Providers → Email**: turn **off** "Allow new users to sign up" (sign-in is Google-only).
 8. Google provider is set up in step 3 (needs the Google keys first).
 
@@ -101,9 +101,11 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 2. Open a private window, sign in with any other Google account → you must see **Access not granted**.
 3. Invite people: **Settings → Team & roles → Invite by Google email**, choose Manager or Staff. They sign in with the same button.
 
-## 6. Company and billing details
+## 6. Company, payment details and prices
 
-**Settings → Company profile**: logo, phone, address. **Billing & invoice details** (owner only): bank name, account title, IBAN, JazzCash/Easypaisa/Raast, NTN/STRN, default sales tax and payment terms. These print on invoice PDFs. **Settings → Services & plans**: set the monthly prices for the three seeded plans (they start at 0).
+1. **Settings → Company profile**: logo, phone, address.
+2. Same page, **Payment details** (owner only): bank name, account title, account number / IBAN, JazzCash, Easypaisa, Raast ID and an optional extra line. The preview on the right shows exactly what is added to every WhatsApp payment reminder.
+3. **Settings → Services & plans**: set prices for the seeded plans — **Growthify WhatsApp API 1 Month / 3 Months / 1 Year**, Meta Ads and TikTok Ads management (they start at 0, and the WhatsApp API "Add client" dialog shows "Set price" until you do).
 
 ## 7. Meta — Facebook Page + Instagram
 

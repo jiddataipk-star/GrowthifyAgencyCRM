@@ -12,7 +12,7 @@ import { isUuid, param } from "@/lib/utils";
 import {
   CATEGORY_LABELS,
   CLIENT_STATUS_LABELS,
-  INVOICE_STATUS_LABELS,
+  DUE_STATE_LABELS,
   METHOD_LABELS,
   NICHE_LABELS,
   PROJECT_STATUS_LABELS,
@@ -31,7 +31,9 @@ import { Amount, RowList, TxIcon, WhatsAppLink } from "@/components/app/domain";
 import { FilesPanel } from "@/components/app/files-panel";
 import { ActivityFeed } from "@/components/app/activity";
 import { loadActors } from "@/lib/data/lookups";
-import { invoiceDisplayStatus } from "@/lib/invoices";
+import { dueState, remaining } from "@/lib/collections";
+import { DueFormDialog, DueMenu, DuePayButton } from "../../collections/due-dialogs";
+import { MarkPaidButton } from "../../subscriptions/row-actions";
 import { ClientFormDialog } from "../client-form";
 import { ClientDangerZone } from "./client-actions";
 import { ProjectFormDialog } from "../../projects/project-form";
@@ -46,7 +48,7 @@ const TABS = [
   { value: "overview", label: "Overview" },
   { value: "projects", label: "Projects" },
   { value: "subscriptions", label: "Subscriptions" },
-  { value: "money", label: "Invoices & Payments" },
+  { value: "money", label: "Payments" },
   { value: "files", label: "Files" },
   { value: "activity", label: "Activity" },
 ];
@@ -67,12 +69,12 @@ async function ClientDetail({ params, searchParams }: Props) {
   const supabase = await createClient();
   const today = todayPK();
 
-  const [clientRes, projectsRes, subsRes, invoicesRes, txRes, filesRes, options] = await Promise.all([
+  const [clientRes, projectsRes, subsRes, duesRes, txRes, filesRes, options] = await Promise.all([
     supabase.from("clients").select("*").eq("id", id).maybeSingle(),
     supabase.from("projects").select("id, title, service_type, status, progress, value, currency, deadline").eq("client_id", id).order("created_at", { ascending: false }),
     supabase.from("subscriptions").select("*").eq("client_id", id).order("next_due_date"),
-    supabase.from("invoices").select("id, number, status, total, amount_paid, currency, issue_date, due_date").eq("client_id", id).order("issue_date", { ascending: false }),
-    supabase.from("transactions").select("id, type, amount, tax_withheld, currency, date, category, method, reference, description").eq("client_id", id).order("date", { ascending: false }).limit(50),
+    supabase.from("dues").select("*, projects(title)").eq("client_id", id).order("due_date", { ascending: false }),
+    supabase.from("transactions").select("id, type, amount, currency, date, time, party_name, category, method, reference, description").eq("client_id", id).order("date", { ascending: false }).limit(50),
     supabase.from("files").select("id, name, size, created_at").eq("entity", "client").eq("entity_id", id).order("created_at", { ascending: false }),
     loadFormOptions(supabase),
   ]);
@@ -81,19 +83,20 @@ async function ClientDetail({ params, searchParams }: Props) {
 
   const projects = projectsRes.data ?? [];
   const subs = subsRes.data ?? [];
-  const invoices = invoicesRes.data ?? [];
+  const dues = duesRes.data ?? [];
   const txs = txRes.data ?? [];
   const billedPkr = txs.filter((t) => t.type === "income" && t.currency === "PKR").reduce((s, t) => s + t.amount, 0);
   const billedUsd = txs.filter((t) => t.type === "income" && t.currency === "USD").reduce((s, t) => s + t.amount, 0);
-  const openInvoices = invoices.filter((i) => i.status === "sent" || i.status === "partial");
-  const outstanding = openInvoices.filter((i) => i.currency === "PKR").reduce((s, i) => s + i.total - i.amount_paid, 0);
+  const openDues = dues.filter((d) => d.status === "pending");
+  const lapsed = subs.filter((s) => s.status === "active" && s.next_due_date <= today && s.currency === "PKR");
+  const outstanding = openDues.filter((d) => d.currency === "PKR").reduce((s, d) => s + remaining(d), 0) + lapsed.reduce((s, x) => s + x.amount, 0);
   const mrr = subs.filter((s) => s.status === "active" && s.currency === "PKR").reduce((sum, s) => sum + Math.round(s.amount / s.interval_months), 0);
   const activeProjects = projects.filter((p) => ["planning", "in_progress", "review"].includes(p.status));
   const phone = client.whatsapp ?? client.phone;
 
   let activity = null;
   if (tab === "activity") {
-    const ids = [id, ...projects.map((p) => p.id), ...subs.map((s) => s.id), ...invoices.map((i) => i.id)];
+    const ids = [id, ...projects.map((p) => p.id), ...subs.map((s) => s.id), ...dues.map((d) => d.id)];
     const { data } = await supabase.from("activity_log").select("id, entity, action, label, diff, created_at, actor_id").in("entity_id", ids).order("created_at", { ascending: false }).limit(100);
     activity = data ?? [];
   }
@@ -147,15 +150,15 @@ async function ClientDetail({ params, searchParams }: Props) {
 
       {tab === "overview" ? (
         <div className="flex flex-col gap-7">
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 wide:grid-cols-4">
-            <KpiCard icon={<Wallet />} tone="success" label="Total received" value={formatMoney(billedPkr, "PKR")} sub={billedUsd ? `+ ${formatMoney(billedUsd, "USD")}` : "Lifetime, PKR"} subTone="muted" />
-            <KpiCard icon={<FileText />} tone="danger" label="Outstanding" value={formatMoney(outstanding, "PKR")} sub={`${openInvoices.length} open invoice${openInvoices.length === 1 ? "" : "s"}`} subTone={outstanding ? "danger" : "muted"} />
+          <div className="grid grid-cols-2 gap-3 sm:gap-5 wide:grid-cols-4">
+            <KpiCard icon={<Wallet />} tone="success" label="Total paid to us" value={formatMoney(billedPkr, "PKR")} sub={billedUsd ? `+ ${formatMoney(billedUsd, "USD")}` : "Last 50 payments, PKR"} />
+            <KpiCard icon={<FileText />} tone={outstanding ? "danger" : "neutral"} label="To collect" value={formatMoney(outstanding, "PKR")} sub={`${openDues.length + lapsed.length} open item${openDues.length + lapsed.length === 1 ? "" : "s"}`} subTone={outstanding ? "danger" : "muted"} />
             <KpiCard icon={<Repeat />} tone="accent" label="Monthly recurring" value={formatMoney(mrr, "PKR")} sub={`${subs.filter((s) => s.status === "active").length} active subscriptions`} subTone="muted" />
-            <KpiCard icon={<Folder />} tone="info" label="Active projects" value={activeProjects.length} sub={`${projects.length} in total`} subTone="muted" />
+            <KpiCard icon={<Folder />} tone="neutral" label="Active projects" value={activeProjects.length} sub={`${projects.length} in total`} subTone="muted" />
           </div>
           <div className="grid grid-cols-1 gap-7 xl:grid-cols-2">
             <Card>
-              <p className="mb-4 text-card font-bold">Details</p>
+              <p className="font-display mb-4 text-card font-bold">Details</p>
               <dl className="grid grid-cols-2 gap-5">
                 <Detail label="Contact">{client.contact_name ?? "—"}</Detail>
                 <Detail label="Phone">{formatPhone(client.phone)}</Detail>
@@ -168,7 +171,7 @@ async function ClientDetail({ params, searchParams }: Props) {
               {client.notes ? <p className="mt-5 rounded-2xl bg-surface-2 p-4 text-sm whitespace-pre-line text-fg-2">{client.notes}</p> : null}
             </Card>
             <Card className="py-3">
-              <p className="pt-2 pb-2 text-card font-bold">Recent payments</p>
+              <p className="font-display pt-2 pb-2 text-card font-bold">Recent payments</p>
               {txs.length ? (
                 <RowList>
                   {txs.slice(0, 6).map((tx) => (
@@ -199,7 +202,7 @@ async function ClientDetail({ params, searchParams }: Props) {
             projects.map((project) => (
               <Card key={project.id} className="grid grid-cols-1 items-center gap-4 sm:grid-cols-[1.5fr_1fr_1fr_auto]">
                 <div className="min-w-0">
-                  <Link href={`/projects/${project.id}`} className="block truncate font-bold hover:text-accent-fg">{project.title}</Link>
+                  <Link href={`/projects/${project.id}`} className="block truncate font-bold hover:text-primary">{project.title}</Link>
                   <p className="text-sm text-muted">{SERVICE_TYPE_LABELS[project.service_type]}</p>
                 </div>
                 <div>
@@ -251,31 +254,45 @@ async function ClientDetail({ params, searchParams }: Props) {
         <div className="grid grid-cols-1 gap-7 xl:grid-cols-2">
           <Card className="py-3">
             <div className="flex items-center justify-between pt-2 pb-2">
-              <p className="text-card font-bold">Invoices</p>
-              <Button asChild size="sm" variant="secondary"><Link href={`/invoices/new?client=${client.id}`}><Plus /> New invoice</Link></Button>
+              <p className="font-display text-card font-bold">To collect</p>
+              <DueFormDialog clients={options.clients} projects={options.projects} preset={{ clientId: client.id }} trigger={<Button size="sm" variant="secondary"><Plus /> Add</Button>} />
             </div>
-            {invoices.length ? (
+            {openDues.length || lapsed.length ? (
               <RowList>
-                {invoices.map((inv) => {
-                  const display = invoiceDisplayStatus(inv, today);
+                {lapsed.map((sub) => (
+                  <li key={sub.id} className="flex items-center gap-3 py-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold">{sub.name}</p>
+                      <p className="text-xs font-semibold text-danger">Renewal due {formatDayMonth(sub.next_due_date)}</p>
+                    </div>
+                    <span className="tabular text-sm font-bold text-danger">{formatMoney(sub.amount, sub.currency)}</span>
+                    <MarkPaidButton sub={sub} clientName={client.business_name} />
+                  </li>
+                ))}
+                {openDues.map((due) => {
+                  const state = dueState(due, today);
                   return (
-                    <li key={inv.id} className="flex items-center gap-3 py-3">
+                    <li key={due.id} className="flex items-center gap-3 py-3">
                       <div className="min-w-0 flex-1">
-                        <Link href={`/invoices/${inv.id}`} className="font-semibold hover:text-accent-fg">{inv.number}</Link>
-                        <p className="text-xs text-muted">Issued {formatDayMonth(inv.issue_date)} · due {formatDayMonth(inv.due_date)}</p>
+                        <p className="truncate text-sm font-semibold">{due.title}</p>
+                        <p className={state === "overdue" ? "text-xs font-semibold text-danger" : "text-xs text-muted"}>
+                          {DUE_STATE_LABELS[state]} · {formatDayMonth(due.due_date)}
+                          {due.projects ? ` · ${due.projects.title}` : ""}
+                        </p>
                       </div>
-                      <span className="tabular text-sm font-bold">{formatMoney(inv.total, inv.currency)}</span>
-                      <StatusPill status={display} label={INVOICE_STATUS_LABELS[display]} />
+                      <span className={state === "overdue" ? "tabular text-sm font-bold text-danger" : "tabular text-sm font-bold"}>{formatMoney(remaining(due), due.currency)}</span>
+                      <DuePayButton due={due} payer={client.business_name} />
+                      <DueMenu due={due} clients={options.clients} projects={options.projects} />
                     </li>
                   );
                 })}
               </RowList>
             ) : (
-              <EmptyState compact icon={<FileText />} title="No invoices yet" />
+              <EmptyState compact icon={<FileText />} title="Nothing to collect" description="Add a payment this client has to make." />
             )}
           </Card>
           <Card className="py-3">
-            <p className="pt-2 pb-2 text-card font-bold">Transactions</p>
+            <p className="font-display pt-2 pb-2 text-card font-bold">Transactions</p>
             {txs.length ? (
               <RowList>
                 {txs.map((tx) => (
@@ -284,9 +301,10 @@ async function ClientDetail({ params, searchParams }: Props) {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold">{tx.description ?? CATEGORY_LABELS[tx.category]}</p>
                       <p className="text-xs text-muted">
-                        {formatDayMonth(tx.date)} · {METHOD_LABELS[tx.method]}
+                        {formatDayMonth(tx.date)}
+                        {tx.time ? ` · ${tx.time.slice(0, 5)}` : ""} · {METHOD_LABELS[tx.method]}
+                        {tx.party_name ? ` · ${tx.party_name}` : ""}
                         {tx.reference ? ` · ${tx.reference}` : ""}
-                        {tx.tax_withheld ? ` · WHT ${formatMoney(tx.tax_withheld, tx.currency)}` : ""}
                       </p>
                     </div>
                     <Amount minor={tx.amount} currency={tx.currency} type={tx.type} className="text-sm" />

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { action, must } from "@/lib/action";
 import { serverEnv } from "@/lib/env";
-import { billingSchema, companySchema, inviteSchema, preferencesSchema, profileSchema, serviceSchema } from "@/lib/validation";
+import { companySchema, inviteSchema, paymentDetailsSchema, preferencesSchema, profileSchema, serviceSchema } from "@/lib/validation";
 import { toMinor } from "@/lib/money";
 import { emptyToNull } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/server";
@@ -17,15 +17,9 @@ export const saveCompanyAction = action("finance", companySchema, async (input, 
   must(await supabase.from("settings").update({ company_name, country, ...nullable(rest) }).eq("singleton", true));
 });
 
-/** Bank details, tax numbers and invoice settings — owner only (also enforced by a DB trigger). */
-export const saveBillingAction = action("owner", billingSchema, async (input, { supabase }) => {
-  const { invoice_prefix, default_tax_rate, default_due_days, show_whatsapp_on_invoice, ...rest } = input;
-  must(
-    await supabase
-      .from("settings")
-      .update({ invoice_prefix, default_tax_rate, default_due_days, show_whatsapp_on_invoice, ...nullable(rest) })
-      .eq("singleton", true),
-  );
+/** Bank / wallet details clients pay into — owner only (also enforced by a DB trigger). */
+export const savePaymentDetailsAction = action("owner", paymentDetailsSchema, async (input, { supabase }) => {
+  must(await supabase.from("settings").update(nullable(input)).eq("singleton", true));
 });
 
 export const savePreferencesAction = action("finance", preferencesSchema, async (input, { supabase }) => {

@@ -26,7 +26,7 @@ export function ClientDangerZone({ id, name, archived, canDelete }: { id: string
         open={confirmArchive}
         onOpenChange={setConfirmArchive}
         title={archived ? `Restore ${name}?` : `Archive ${name}?`}
-        description={archived ? "The client will appear in lists again." : "Archived clients are hidden from lists but keep all projects, invoices and payments."}
+        description={archived ? "The client will appear in lists again." : "Archived clients are hidden from lists but keep all projects, subscriptions and payments."}
         confirmLabel={archived ? "Restore" : "Archive"}
         onConfirm={async () => {
           const result = await archiveClientAction({ id, archived: !archived });
@@ -38,7 +38,7 @@ export function ClientDangerZone({ id, name, archived, canDelete }: { id: string
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
         title={`Delete ${name} permanently?`}
-        description="Only possible when the client has no projects, subscriptions or invoices. Payments keep their history without the client link. This cannot be undone."
+        description="Only possible when the client has no projects, subscriptions or payment requests. Payments keep their history without the client link. This cannot be undone."
         confirmLabel="Delete forever"
         danger
         onConfirm={async () => {

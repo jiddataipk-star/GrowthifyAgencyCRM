@@ -78,7 +78,7 @@ export function ClientFormDialog({ client, trigger }: { client?: Tables<"clients
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent title={client ? "Edit client" : "Add client"} description="Business details used across projects, invoices and WhatsApp." size="lg">
+      <DialogContent title={client ? "Edit client" : "Add client"} description="Business details used across projects, collections and WhatsApp." size="lg">
         <form onSubmit={onSubmit} noValidate>
           <Controller
             control={control}
@@ -116,7 +116,7 @@ export function ClientFormDialog({ client, trigger }: { client?: Tables<"clients
             <Field label="Country" htmlFor="country" error={errors.country?.message}>
               <Input {...register("country")} />
             </Field>
-            <Field label="NTN (for tax invoices)" htmlFor="ntn" error={errors.ntn?.message}>
+            <Field label="NTN (optional)" htmlFor="ntn" error={errors.ntn?.message}>
               <Input placeholder="Optional" {...register("ntn")} />
             </Field>
             <Field label="Tags" htmlFor="tags" error={errors.tags?.message} hint="Comma-separated, e.g. priority, dha">

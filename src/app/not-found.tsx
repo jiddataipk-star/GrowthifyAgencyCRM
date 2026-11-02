@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 export default function NotFound() {
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center px-4 py-12 text-center">
-      <Logo className="mb-10 w-[180px]" />
+      <Logo onDark={false} className="mb-10 w-[180px]" />
       <IconCircle tone="accent">
         <SearchX />
       </IconCircle>

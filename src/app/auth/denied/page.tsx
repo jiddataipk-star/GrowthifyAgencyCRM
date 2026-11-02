@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Access not granted" };
 export default function DeniedPage() {
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center px-4 py-12">
-      <Logo className="mb-10 w-[180px]" />
+      <Logo onDark={false} className="mb-10 w-[180px]" />
       <div className="w-full max-w-[440px] rounded-card border border-line bg-surface p-8 text-center">
         <IconCircle tone="danger" className="mx-auto">
           <ShieldX />

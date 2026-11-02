@@ -15,12 +15,12 @@ export function Switch({
   return (
     <RSwitch.Root
       className={cn(
-        "relative inline-flex h-[30px] w-[54px] shrink-0 cursor-pointer items-center rounded-full border border-line bg-surface-3 transition-colors data-[state=checked]:border-transparent data-[state=checked]:bg-accent disabled:cursor-not-allowed disabled:opacity-50",
+        "relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full bg-surface-3 transition-colors data-[state=checked]:bg-primary disabled:cursor-not-allowed disabled:opacity-50",
         className,
       )}
       {...props}
     >
-      <RSwitch.Thumb className="block size-6 translate-x-[3px] rounded-full bg-white shadow-[0_2px_6px_rgb(0_0_0/0.25)] transition-transform data-[state=checked]:translate-x-[26px] data-[state=checked]:bg-accent-ink" />
+      <RSwitch.Thumb className="block size-5 translate-x-0.5 rounded-full bg-white shadow-[0_1px_3px_rgb(11_18_16/0.25)] transition-transform data-[state=checked]:translate-x-[22px]" />
     </RSwitch.Root>
   );
 }
@@ -105,7 +105,7 @@ export function LinkTabs({
   const searchParams = useSearchParams();
   const current = searchParams.get(param) ?? tabs[0]?.value;
   return (
-    <nav className={cn("no-scrollbar -mb-px flex gap-7 overflow-x-auto border-b border-line", className)} aria-label="Tabs">
+    <nav className={cn("no-scrollbar -mb-px flex gap-6 overflow-x-auto border-b border-line", className)} aria-label="Tabs">
       {tabs.map((tab, index) => {
         const next = new URLSearchParams();
         for (const key of keep) {
@@ -121,13 +121,13 @@ export function LinkTabs({
             scroll={false}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "relative shrink-0 pb-3.5 text-[15px] font-semibold whitespace-nowrap transition-colors",
-              active ? "text-accent-fg" : "text-muted hover:text-fg",
+              "relative shrink-0 pb-3 text-[14px] font-semibold whitespace-nowrap transition-colors",
+              active ? "text-fg" : "text-muted hover:text-fg",
             )}
           >
             {tab.label}
-            {tab.count !== undefined ? <span className="ml-1.5 text-xs text-muted">{tab.count}</span> : null}
-            {active ? <span className="absolute inset-x-0 -bottom-px h-[3px] rounded-t-full bg-accent-fg" /> : null}
+            {tab.count !== undefined ? <span className="tabular ml-1.5 rounded-full bg-surface-2 px-1.5 py-0.5 text-[11px] text-muted">{tab.count}</span> : null}
+            {active ? <span className="absolute inset-x-0 -bottom-px h-[2px] rounded-full bg-primary" /> : null}
           </Link>
         );
       })}
@@ -152,7 +152,7 @@ export function Pagination({ page, pageCount }: { page: number; pageCount: numbe
   const item = "inline-flex h-9 min-w-9 items-center justify-center rounded-[10px] px-2 text-sm font-semibold";
   return (
     <nav className="mt-5 flex items-center justify-end gap-1" aria-label="Pagination">
-      <PageLink href={href(page - 1)} disabled={page <= 1} className={cn(item, "gap-1 text-accent-fg")}>
+      <PageLink href={href(page - 1)} disabled={page <= 1} className={cn(item, "gap-1 text-fg-2 hover:text-fg")}>
         <ChevronLeft className="size-4" /> Previous
       </PageLink>
       {pages.map((p, i) => (
@@ -167,7 +167,7 @@ export function Pagination({ page, pageCount }: { page: number; pageCount: numbe
           </Link>
         </React.Fragment>
       ))}
-      <PageLink href={href(page + 1)} disabled={page >= pageCount} className={cn(item, "gap-1 text-accent-fg")}>
+      <PageLink href={href(page + 1)} disabled={page >= pageCount} className={cn(item, "gap-1 text-fg-2 hover:text-fg")}>
         Next <ChevronRight className="size-4" />
       </PageLink>
     </nav>
@@ -193,9 +193,9 @@ export function Progress({ value, className, label }: { value: number; className
       aria-valuemin={0}
       aria-valuemax={100}
       aria-label={label ?? "Progress"}
-      className={cn("h-2 w-full overflow-hidden rounded-full bg-surface-3", className)}
+      className={cn("h-1.5 w-full overflow-hidden rounded-full bg-surface-3", className)}
     >
-      <div className="h-full rounded-full bg-accent transition-[width] duration-500" style={{ width: `${pct}%` }} />
+      <div className="h-full rounded-full bg-primary transition-[width] duration-500" style={{ width: `${pct}%` }} />
     </div>
   );
 }

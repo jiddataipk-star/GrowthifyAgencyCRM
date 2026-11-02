@@ -1,33 +1,37 @@
 import {
-  CreditCard,
-  FileText,
+  ArrowLeftRight,
+  BarChart3,
   Filter,
   Folder,
+  HandCoins,
   Home,
+  MessageCircleMore,
   Repeat,
   Settings,
   UserRound,
   Users,
-  BarChart3,
   type LucideIcon,
 } from "lucide-react";
 import type { Role } from "@/types/db";
 
-export type NavItem = { href: string; label: string; icon: LucideIcon; finance: boolean };
+export type NavItem = { href: string; label: string; icon: LucideIcon; finance: boolean; group: "work" | "money" | "agency" };
 
-/** Sidebar order from the brief. `finance` items are hidden from Staff. */
+/** Sidebar order. `finance` items are hidden from Staff. */
 export const NAV_ITEMS: NavItem[] = [
-  { href: "/", label: "Overview", icon: Home, finance: true },
-  { href: "/clients", label: "Clients", icon: Users, finance: true },
-  { href: "/leads", label: "Leads", icon: Filter, finance: true },
-  { href: "/projects", label: "Projects", icon: Folder, finance: false },
-  { href: "/subscriptions", label: "Subscriptions", icon: Repeat, finance: true },
-  { href: "/payments", label: "Payments", icon: CreditCard, finance: true },
-  { href: "/invoices", label: "Invoices", icon: FileText, finance: true },
-  { href: "/team", label: "Team", icon: UserRound, finance: true },
-  { href: "/social", label: "Social", icon: BarChart3, finance: true },
-  { href: "/settings", label: "Settings", icon: Settings, finance: false },
+  { href: "/", label: "Overview", icon: Home, finance: true, group: "work" },
+  { href: "/clients", label: "Clients", icon: Users, finance: true, group: "work" },
+  { href: "/leads", label: "Leads", icon: Filter, finance: true, group: "work" },
+  { href: "/projects", label: "Projects", icon: Folder, finance: false, group: "work" },
+  { href: "/whatsapp", label: "WhatsApp API", icon: MessageCircleMore, finance: true, group: "work" },
+  { href: "/collections", label: "Collections", icon: HandCoins, finance: true, group: "money" },
+  { href: "/transactions", label: "Transactions", icon: ArrowLeftRight, finance: true, group: "money" },
+  { href: "/subscriptions", label: "Subscriptions", icon: Repeat, finance: true, group: "money" },
+  { href: "/team", label: "Team", icon: UserRound, finance: true, group: "agency" },
+  { href: "/social", label: "Social", icon: BarChart3, finance: true, group: "agency" },
+  { href: "/settings", label: "Settings", icon: Settings, finance: false, group: "agency" },
 ];
+
+export const NAV_GROUP_LABELS: Record<NavItem["group"], string> = { work: "Workspace", money: "Money", agency: "Agency" };
 
 export function navFor(role: Role): NavItem[] {
   return role === "staff" ? NAV_ITEMS.filter((item) => !item.finance) : NAV_ITEMS;

@@ -17,12 +17,6 @@ const nextConfig: NextConfig = {
     instantInsights: { validationLevel: "manual-warning" },
   },
   poweredByHeader: false,
-  // The invoice PDF renderer reads its fonts from disk at request time.
-  outputFileTracingIncludes: {
-    "/api/invoices/[id]/pdf": ["./src/assets/fonts/**"],
-    "/i/[token]": ["./src/assets/fonts/**"],
-  },
-  serverExternalPackages: ["@react-pdf/renderer"],
   turbopack: {
     rules: {
       "*.css": {
@@ -30,6 +24,13 @@ const nextConfig: NextConfig = {
         as: "*.css",
       },
     },
+  },
+  // Old bookmarks from before invoices were replaced by Collections.
+  async redirects() {
+    return [
+      { source: "/payments", destination: "/transactions", permanent: true },
+      { source: "/invoices/:path*", destination: "/collections", permanent: true },
+    ];
   },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];

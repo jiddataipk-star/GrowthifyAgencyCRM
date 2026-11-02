@@ -21,13 +21,13 @@ create type public.lead_stage          as enum ('new', 'contacted', 'proposal_se
 create type public.service_type        as enum ('custom_software', 'ai_automation', 'web_app', 'whatsapp_api', 'ads_management', 'other');
 create type public.project_status      as enum ('planning', 'in_progress', 'review', 'delivered', 'on_hold');
 create type public.subscription_status as enum ('active', 'paused', 'cancelled');
-create type public.invoice_status      as enum ('draft', 'sent', 'partial', 'paid', 'void');
+create type public.due_status          as enum ('pending', 'paid', 'cancelled');
 create type public.tx_type             as enum ('income', 'expense');
 create type public.tx_category         as enum (
   -- income
   'project', 'subscription',
-  -- expense
-  'salary', 'contractor', 'hosting', 'software', 'ads_spend', 'office', 'tax',
+  -- expense (what a Pakistani agency actually spends on)
+  'salary', 'freelancer', 'rent', 'utilities', 'software', 'ads_spend', 'travel', 'office', 'tax',
   -- both
   'other'
 );
@@ -155,25 +155,20 @@ create table public.settings (
   logo_path          text,
   email              text,
   phone              text,
-  whatsapp_number    text,           -- internal; never printed unless show_whatsapp_on_invoice
+  whatsapp_number    text,           -- business WhatsApp shown in payment reminders
   website            text,
   address            text,
   city               text,
   country            text not null default 'Pakistan',
-  -- billing (owner only)
-  ntn                text,           -- FBR National Tax Number
-  strn               text,           -- Sales Tax Registration Number
+  -- payment details sent to clients in WhatsApp reminders (owner only)
   bank_name          text,
   account_title      text,
   account_number     text,
   iban               text,
-  wallet_details     text,           -- JazzCash / Easypaisa / Raast IDs
+  jazzcash_number    text,
+  easypaisa_number   text,
+  raast_id           text,
   payment_notes      text,
-  invoice_prefix     text not null default 'GA' check (invoice_prefix ~ '^[A-Z0-9]{1,6}$'),
-  default_tax_rate   numeric(5, 2) not null default 0 check (default_tax_rate between 0 and 100),
-  default_due_days   integer not null default 7 check (default_due_days between 0 and 120),
-  invoice_footer     text,
-  show_whatsapp_on_invoice boolean not null default false,
   -- preferences
   default_currency   public.currency_code not null default 'PKR',
   timezone           text not null default 'Asia/Karachi',
@@ -343,6 +338,7 @@ create table public.subscriptions (
   currency        public.currency_code not null default 'PKR',
   interval_months integer not null default 1 check (interval_months in (1, 3, 6, 12)),
   billing_day     integer not null check (billing_day between 1 and 31),
+  service_ref     text,             -- e.g. the WhatsApp API number or Meta ad account
   start_date      date not null,
   next_due_date   date not null,
   status          public.subscription_status not null default 'active',
@@ -355,48 +351,35 @@ create table public.subscriptions (
 create index subscriptions_client_idx on public.subscriptions (client_id);
 create index subscriptions_due_idx on public.subscriptions (next_due_date) where status = 'active';
 
-create table public.invoices (
-  id           uuid primary key default gen_random_uuid(),
-  number       text not null unique,
-  client_id    uuid not null references public.clients (id) on delete restrict,
-  project_id   uuid references public.projects (id) on delete set null,
-  issue_date   date not null default public.today_pk(),
-  due_date     date not null,
-  status       public.invoice_status not null default 'draft',
-  currency     public.currency_code not null default 'PKR',
-  subtotal     bigint not null default 0 check (subtotal >= 0),
-  discount     bigint not null default 0 check (discount >= 0),
-  tax_rate     numeric(5, 2) not null default 0 check (tax_rate between 0 and 100),
-  tax          bigint not null default 0 check (tax >= 0),
-  total        bigint not null default 0 check (total >= 0),
-  amount_paid  bigint not null default 0 check (amount_paid >= 0),
-  notes        text,
-  pdf_url      text,
-  share_token  uuid not null default gen_random_uuid() unique,
-  sent_at      timestamptz,
-  paid_at      timestamptz,
-  created_at   timestamptz not null default now(),
-  updated_at   timestamptz not null default now(),
-  created_by   uuid default auth.uid() references auth.users (id) on delete set null,
-  check (due_date >= issue_date),
-  check (discount <= subtotal)
+-- Dues: "who owes us what, for what, by when" — the simple receivables list
+-- Pakistani clients actually work with (no formal invoice needed). Project
+-- payment schedules (advance / final) are dues linked to the project.
+create table public.dues (
+  id            uuid primary key default gen_random_uuid(),
+  client_id     uuid references public.clients (id) on delete restrict,
+  payer_name    text,             -- when the payer isn't a saved client
+  payer_phone   text,
+  title         text not null check (length(trim(title)) > 0),   -- for what
+  amount        bigint not null check (amount > 0),
+  currency      public.currency_code not null default 'PKR',
+  due_date      date not null default public.today_pk(),
+  project_id    uuid references public.projects (id) on delete set null,
+  status        public.due_status not null default 'pending',
+  amount_paid   bigint not null default 0 check (amount_paid >= 0),  -- kept in sync from transactions
+  adjustment    bigint not null default 0 check (adjustment >= 0),   -- discount / written off when settled
+  paid_at       timestamptz,
+  cancelled_at  timestamptz,
+  cancel_reason text,
+  notes         text,
+  position      integer not null default 0,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now(),
+  created_by    uuid default auth.uid() references auth.users (id) on delete set null,
+  check (client_id is not null or length(trim(coalesce(payer_name, ''))) > 0)
 );
-create index invoices_client_idx on public.invoices (client_id);
-create index invoices_open_idx on public.invoices (due_date) where status in ('sent', 'partial');
-
-create table public.invoice_items (
-  id          uuid primary key default gen_random_uuid(),
-  invoice_id  uuid not null references public.invoices (id) on delete cascade,
-  description text not null check (length(trim(description)) > 0),
-  qty         numeric(12, 2) not null default 1 check (qty > 0),
-  unit_price  bigint not null check (unit_price >= 0),
-  amount      bigint not null default 0,
-  position    integer not null default 0,
-  created_at  timestamptz not null default now(),
-  updated_at  timestamptz not null default now(),
-  created_by  uuid default auth.uid() references auth.users (id) on delete set null
-);
-create index invoice_items_invoice_idx on public.invoice_items (invoice_id, position);
+create index dues_open_idx on public.dues (due_date) where status = 'pending';
+create index dues_client_idx on public.dues (client_id);
+create index dues_project_idx on public.dues (project_id, position);
 
 create table public.employees (
   id             uuid primary key default gen_random_uuid(),
@@ -419,9 +402,10 @@ create table public.transactions (
   id              uuid primary key default gen_random_uuid(),
   type            public.tx_type not null,
   amount          bigint not null check (amount > 0),
-  tax_withheld    bigint not null default 0 check (tax_withheld >= 0),
   currency        public.currency_code not null default 'PKR',
   date            date not null default public.today_pk(),
+  time            time,             -- when the money arrived (from the bank / wallet SMS)
+  party_name      text,             -- name it came from (account title) or was paid to
   category        public.tx_category not null,
   method          public.payment_method not null default 'bank_transfer',
   reference       text,
@@ -429,10 +413,10 @@ create table public.transactions (
   client_id       uuid references public.clients (id) on delete set null,
   project_id      uuid references public.projects (id) on delete set null,
   subscription_id uuid references public.subscriptions (id) on delete set null,
-  invoice_id      uuid references public.invoices (id) on delete set null,
+  due_id          uuid references public.dues (id) on delete set null,
   employee_id     uuid references public.employees (id) on delete set null,
   salary_month    date check (salary_month is null or extract(day from salary_month) = 1),
-  receipt_url     text,
+  receipt_url     text,             -- screenshot / receipt in the private receipts bucket
   notes           text,
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now(),
@@ -440,36 +424,20 @@ create table public.transactions (
   check (
     (type = 'income'  and category in ('project', 'subscription', 'other'))
     or
-    (type = 'expense' and category in ('salary', 'contractor', 'hosting', 'software', 'ads_spend', 'office', 'tax', 'other'))
-  ),
-  check (type = 'income' or tax_withheld = 0)
+    (type = 'expense' and category in ('salary', 'freelancer', 'rent', 'utilities', 'software', 'ads_spend', 'travel', 'office', 'tax', 'other'))
+  )
 );
 create index transactions_date_idx on public.transactions (date desc);
 create index transactions_type_date_idx on public.transactions (type, date desc);
 create index transactions_client_idx on public.transactions (client_id);
 create index transactions_project_idx on public.transactions (project_id);
-create index transactions_invoice_idx on public.transactions (invoice_id);
+create index transactions_due_idx on public.transactions (due_id);
 create index transactions_subscription_idx on public.transactions (subscription_id);
 create index transactions_employee_idx on public.transactions (employee_id);
 -- One salary payment per employee per month.
 create unique index transactions_salary_once_idx
   on public.transactions (employee_id, salary_month)
   where category = 'salary' and employee_id is not null and salary_month is not null;
-
-create table public.milestones (
-  id          uuid primary key default gen_random_uuid(),
-  project_id  uuid not null references public.projects (id) on delete cascade,
-  name        text not null check (length(trim(name)) > 0),
-  amount      bigint not null default 0 check (amount >= 0),
-  due_date    date,
-  paid        boolean not null default false,
-  paid_tx_id  uuid references public.transactions (id) on delete set null,
-  position    integer not null default 0,
-  created_at  timestamptz not null default now(),
-  updated_at  timestamptz not null default now(),
-  created_by  uuid default auth.uid() references auth.users (id) on delete set null
-);
-create index milestones_project_idx on public.milestones (project_id, position);
 
 -- -----------------------------------------------------------------------------
 -- Social
@@ -538,7 +506,7 @@ create index social_posts_published_idx on public.social_posts (social_account_i
 -- -----------------------------------------------------------------------------
 create table public.files (
   id         uuid primary key default gen_random_uuid(),
-  entity     text not null check (entity in ('client', 'project', 'invoice', 'transaction', 'employee')),
+  entity     text not null check (entity in ('client', 'project', 'transaction', 'employee')),
   entity_id  uuid not null,
   bucket     text not null default 'files',
   path       text not null unique,
@@ -585,8 +553,8 @@ declare
 begin
   foreach t in array array[
     'team_members', 'settings', 'clients', 'leads', 'services', 'projects', 'project_members',
-    'tasks', 'plans', 'subscriptions', 'invoices', 'invoice_items', 'employees', 'transactions',
-    'milestones', 'social_accounts', 'social_metrics_daily', 'social_posts', 'files',
+    'tasks', 'plans', 'subscriptions', 'dues', 'employees', 'transactions',
+    'social_accounts', 'social_metrics_daily', 'social_posts', 'files',
     'activity_log', 'demo_records'
   ]
   loop
@@ -631,10 +599,10 @@ begin
   end if;
 
   -- Never copy secrets into the log.
-  v_diff := v_diff - 'token_encrypted' - 'refresh_token_encrypted' - 'share_token';
+  v_diff := v_diff - 'token_encrypted' - 'refresh_token_encrypted';
 
   v_label := coalesce(
-    v_row ->> 'business_name', v_row ->> 'title', v_row ->> 'number',
+    v_row ->> 'business_name', v_row ->> 'title',
     v_row ->> 'name', v_row ->> 'company_name', v_row ->> 'description',
     v_row ->> 'email', v_row ->> 'platform'
   );
@@ -660,7 +628,7 @@ declare
 begin
   foreach t in array array[
     'team_members', 'settings', 'clients', 'leads', 'services', 'projects', 'plans',
-    'subscriptions', 'invoices', 'employees', 'transactions', 'milestones', 'social_accounts'
+    'subscriptions', 'dues', 'employees', 'transactions', 'social_accounts'
   ]
   loop
     execute format(
@@ -725,7 +693,7 @@ $$;
 create trigger guard_last_owner before update or delete on public.team_members
   for each row execute function public.guard_last_owner();
 
--- Billing settings (bank details, tax numbers, invoice config) are owner-only.
+-- Payment details (bank, IBAN, wallets) are owner-only: they are sent to clients.
 create or replace function public.guard_settings_update()
 returns trigger
 language plpgsql
@@ -735,14 +703,12 @@ begin
   if auth.uid() is null or public.is_owner() then
     return new;
   end if;
-  if (new.ntn, new.strn, new.bank_name, new.account_title, new.account_number, new.iban,
-      new.wallet_details, new.payment_notes, new.invoice_prefix, new.default_tax_rate,
-      new.default_due_days, new.invoice_footer, new.show_whatsapp_on_invoice)
+  if (new.bank_name, new.account_title, new.account_number, new.iban, new.jazzcash_number,
+      new.easypaisa_number, new.raast_id, new.payment_notes)
      is distinct from
-     (old.ntn, old.strn, old.bank_name, old.account_title, old.account_number, old.iban,
-      old.wallet_details, old.payment_notes, old.invoice_prefix, old.default_tax_rate,
-      old.default_due_days, old.invoice_footer, old.show_whatsapp_on_invoice) then
-    raise exception 'Only the owner can change billing settings'
+     (old.bank_name, old.account_title, old.account_number, old.iban, old.jazzcash_number,
+      old.easypaisa_number, old.raast_id, old.payment_notes) then
+    raise exception 'Only the owner can change payment details'
       using errcode = '42501';
   end if;
   return new;
@@ -841,123 +807,36 @@ create trigger stamp_subscription_cancel before update of status on public.subsc
   for each row execute function public.stamp_subscription_cancel();
 
 -- -----------------------------------------------------------------------------
--- Invoices: numbering, totals and payment status are maintained by the database
--- so they can never drift from the line items and linked transactions.
+-- Dues: paid / pending status is derived from linked income transactions, so it
+-- can never disagree with the money actually recorded.
 -- -----------------------------------------------------------------------------
-create table public.invoice_counters (
-  year       integer primary key,
-  last_value integer not null default 0
-);
-alter table public.invoice_counters enable row level security;
--- No policies: only reachable through next_invoice_number().
-
-create or replace function public.next_invoice_number(p_date date default public.today_pk())
-returns text
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  v_year   integer := extract(year from p_date)::integer;
-  v_value  integer;
-  v_prefix text;
-begin
-  if not public.is_finance() and auth.uid() is not null then
-    raise exception 'Not allowed' using errcode = '42501';
-  end if;
-  select coalesce(s.invoice_prefix, 'GA') into v_prefix from public.settings s limit 1;
-  insert into public.invoice_counters as c (year, last_value)
-  values (v_year, 1)
-  on conflict (year) do update set last_value = c.last_value + 1
-  returning c.last_value into v_value;
-  return format('%s-%s-%s', coalesce(v_prefix, 'GA'), v_year, lpad(v_value::text, 4, '0'));
-end;
-$$;
-
-create or replace function public.assign_invoice_number()
+create or replace function public.compute_due_status()
 returns trigger
 language plpgsql
 set search_path = ''
 as $$
 begin
-  if new.number is null or new.number = '' then
-    new.number := public.next_invoice_number(new.issue_date);
+  if new.status = 'cancelled' then
+    new.cancelled_at := coalesce(new.cancelled_at, now());
+    return new;
+  end if;
+  new.cancelled_at := null;
+  new.cancel_reason := null;
+  if new.amount_paid + new.adjustment >= new.amount then
+    new.status := 'paid';
+    new.paid_at := coalesce(new.paid_at, now());
+  else
+    new.status := 'pending';
+    new.paid_at := null;
+    new.adjustment := 0;
   end if;
   return new;
 end;
 $$;
-create trigger assign_invoice_number before insert on public.invoices
-  for each row execute function public.assign_invoice_number();
+create trigger compute_due_status before insert or update on public.dues
+  for each row execute function public.compute_due_status();
 
-create or replace function public.compute_invoice_totals()
-returns trigger
-language plpgsql
-set search_path = ''
-as $$
-begin
-  new.discount := least(new.discount, new.subtotal);
-  new.tax := round((new.subtotal - new.discount) * new.tax_rate / 100.0)::bigint;
-  new.total := new.subtotal - new.discount + new.tax;
-
-  if new.status <> 'void' then
-    if new.total > 0 and new.amount_paid >= new.total then
-      new.status := 'paid';
-      new.paid_at := coalesce(new.paid_at, now());
-    elsif new.amount_paid > 0 then
-      new.status := 'partial';
-      new.paid_at := null;
-    elsif new.status in ('paid', 'partial') then
-      new.status := 'sent';
-      new.paid_at := null;
-    end if;
-  end if;
-
-  if new.status = 'sent' and new.sent_at is null then
-    new.sent_at := now();
-  end if;
-  return new;
-end;
-$$;
-create trigger compute_invoice_totals before insert or update on public.invoices
-  for each row execute function public.compute_invoice_totals();
-
-create or replace function public.compute_item_amount()
-returns trigger
-language plpgsql
-set search_path = ''
-as $$
-begin
-  new.amount := round(new.qty * new.unit_price)::bigint;
-  return new;
-end;
-$$;
-create trigger compute_item_amount before insert or update on public.invoice_items
-  for each row execute function public.compute_item_amount();
-
-create or replace function public.refresh_invoice_subtotal()
-returns trigger
-language plpgsql
-set search_path = ''
-as $$
-declare
-  v_invoice uuid := coalesce(new.invoice_id, old.invoice_id);
-begin
-  update public.invoices i
-     set subtotal = coalesce((select sum(it.amount) from public.invoice_items it where it.invoice_id = v_invoice), 0)
-   where i.id = v_invoice;
-  if tg_op = 'UPDATE' and old.invoice_id is distinct from new.invoice_id then
-    update public.invoices i
-       set subtotal = coalesce((select sum(it.amount) from public.invoice_items it where it.invoice_id = old.invoice_id), 0)
-     where i.id = old.invoice_id;
-  end if;
-  return null;
-end;
-$$;
-create trigger refresh_invoice_subtotal after insert or update or delete on public.invoice_items
-  for each row execute function public.refresh_invoice_subtotal();
-
--- Payments recorded against an invoice (cash received + tax withheld at source).
-create or replace function public.refresh_invoice_paid()
+create or replace function public.refresh_due_paid()
 returns trigger
 language plpgsql
 security definer
@@ -965,24 +844,23 @@ set search_path = ''
 as $$
 declare
   v_ids uuid[] := array_remove(array[
-    case when tg_op <> 'DELETE' then new.invoice_id end,
-    case when tg_op <> 'INSERT' then old.invoice_id end
+    case when tg_op <> 'DELETE' then new.due_id end,
+    case when tg_op <> 'INSERT' then old.due_id end
   ], null);
 begin
-  update public.invoices i
+  update public.dues d
      set amount_paid = coalesce((
-           select sum(t.amount + t.tax_withheld)
-           from public.transactions t
-           where t.invoice_id = i.id and t.type = 'income'
+           select sum(t.amount) from public.transactions t
+           where t.due_id = d.id and t.type = 'income'
          ), 0)
-   where i.id = any (v_ids);
+   where d.id = any (v_ids);
   return null;
 end;
 $$;
-create trigger refresh_invoice_paid after insert or update or delete on public.transactions
-  for each row execute function public.refresh_invoice_paid();
+create trigger refresh_due_paid after insert or update or delete on public.transactions
+  for each row execute function public.refresh_due_paid();
 
--- Keep linked transactions consistent with their invoice / subscription currency.
+-- Keep linked transactions consistent with their due.
 create or replace function public.check_transaction_links()
 returns trigger
 language plpgsql
@@ -990,15 +868,18 @@ set search_path = ''
 as $$
 declare
   v_currency public.currency_code;
-  v_status   public.invoice_status;
+  v_status   public.due_status;
 begin
-  if new.invoice_id is not null then
-    select currency, status into v_currency, v_status from public.invoices where id = new.invoice_id;
+  if new.due_id is not null then
+    select currency, status into v_currency, v_status from public.dues where id = new.due_id;
     if v_currency is distinct from new.currency then
-      raise exception 'Payment currency must match the invoice currency (%)', v_currency using errcode = '23514';
+      raise exception 'Payment currency must match the amount due (%)', v_currency using errcode = '23514';
     end if;
-    if v_status = 'void' then
-      raise exception 'Cannot record a payment on a void invoice' using errcode = '23514';
+    if v_status = 'cancelled' and (tg_op = 'INSERT' or old.due_id is distinct from new.due_id) then
+      raise exception 'This payment request was cancelled. Reopen it first.' using errcode = '23514';
+    end if;
+    if new.type <> 'income' then
+      raise exception 'Only income can be linked to a payment request' using errcode = '23514';
     end if;
   end if;
   if new.salary_month is not null and new.category <> 'salary' then
@@ -1010,21 +891,6 @@ $$;
 create trigger check_transaction_links before insert or update on public.transactions
   for each row execute function public.check_transaction_links();
 
--- If a milestone's transaction is deleted, the milestone becomes unpaid again.
-create or replace function public.unpay_milestone_on_tx_delete()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $$
-begin
-  update public.milestones set paid = false, paid_tx_id = null where paid_tx_id = old.id;
-  return old;
-end;
-$$;
-create trigger unpay_milestone_on_tx_delete before delete on public.transactions
-  for each row execute function public.unpay_milestone_on_tx_delete();
-
 -- =============================================================================
 -- Row Level Security
 -- =============================================================================
@@ -1034,8 +900,8 @@ declare
 begin
   foreach t in array array[
     'team_members', 'settings', 'clients', 'leads', 'services', 'projects', 'project_members',
-    'tasks', 'plans', 'subscriptions', 'invoices', 'invoice_items', 'employees', 'transactions',
-    'milestones', 'social_accounts', 'social_metrics_daily', 'social_posts', 'files',
+    'tasks', 'plans', 'subscriptions', 'dues', 'employees', 'transactions',
+    'social_accounts', 'social_metrics_daily', 'social_posts', 'files',
     'activity_log', 'demo_records'
   ]
   loop
@@ -1129,22 +995,12 @@ create policy "delete tasks" on public.tasks
     or (created_by = (select auth.uid()) and public.is_project_member(project_id))
   );
 
--- milestones -------------------------------------------------------------------
-create policy "finance reads milestones" on public.milestones
-  for select to authenticated using ((select public.is_finance()));
-create policy "finance adds milestones" on public.milestones
-  for insert to authenticated with check ((select public.is_finance()));
-create policy "finance edits milestones" on public.milestones
-  for update to authenticated using ((select public.is_finance())) with check ((select public.is_finance()));
-create policy "delete milestones" on public.milestones
-  for delete to authenticated using ((select public.is_owner()) or ((select public.is_finance()) and not paid));
-
 -- money tables: owner + manager read/write, only owner deletes -------------------
 do $$
 declare
   t text;
 begin
-  foreach t in array array['plans', 'subscriptions', 'invoices', 'transactions', 'employees']
+  foreach t in array array['plans', 'subscriptions', 'transactions', 'employees']
   loop
     execute format('create policy "finance reads %1$s" on public.%1$I
                       for select to authenticated using ((select public.is_finance()))', t);
@@ -1159,36 +1015,15 @@ begin
 end;
 $$;
 
--- Draft invoices can be discarded by managers too (nothing financial has happened yet).
-create policy "finance deletes draft invoices" on public.invoices
-  for delete to authenticated using ((select public.is_finance()) and status = 'draft' and amount_paid = 0);
-
--- Line items are editable only while nothing has been paid against the invoice.
-create or replace function public.invoice_is_editable(p_invoice_id uuid)
-returns boolean
-language sql
-stable
-security definer
-set search_path = ''
-as $$
-  select exists (
-    select 1 from public.invoices i
-    where i.id = p_invoice_id and i.status in ('draft', 'sent') and i.amount_paid = 0
-  )
-$$;
-
-create policy "finance reads invoice items" on public.invoice_items
+-- dues: managers can delete a request nobody has paid against yet
+create policy "finance reads dues" on public.dues
   for select to authenticated using ((select public.is_finance()));
-create policy "finance adds invoice items" on public.invoice_items
-  for insert to authenticated
-  with check ((select public.is_finance()) and public.invoice_is_editable(invoice_id));
-create policy "finance edits invoice items" on public.invoice_items
-  for update to authenticated
-  using ((select public.is_finance()) and public.invoice_is_editable(invoice_id))
-  with check ((select public.is_finance()) and public.invoice_is_editable(invoice_id));
-create policy "finance removes invoice items" on public.invoice_items
-  for delete to authenticated
-  using ((select public.is_finance()) and public.invoice_is_editable(invoice_id));
+create policy "finance adds dues" on public.dues
+  for insert to authenticated with check ((select public.is_finance()));
+create policy "finance edits dues" on public.dues
+  for update to authenticated using ((select public.is_finance())) with check ((select public.is_finance()));
+create policy "delete unpaid dues" on public.dues
+  for delete to authenticated using ((select public.is_owner()) or ((select public.is_finance()) and amount_paid = 0));
 
 -- social -----------------------------------------------------------------------
 create policy "finance reads social accounts" on public.social_accounts
@@ -1249,8 +1084,5 @@ create policy "owner reads demo records" on public.demo_records
   for select to authenticated using ((select public.is_owner()));
 
 -- Lock down helper functions that must not be callable anonymously.
-revoke execute on function public.next_invoice_number(date) from public, anon;
-revoke all on public.invoice_counters from anon, authenticated;
 revoke execute on function public.log_activity() from public, anon, authenticated;
-revoke execute on function public.refresh_invoice_paid() from public, anon, authenticated;
-revoke execute on function public.unpay_milestone_on_tx_delete() from public, anon, authenticated;
+revoke execute on function public.refresh_due_paid() from public, anon, authenticated;

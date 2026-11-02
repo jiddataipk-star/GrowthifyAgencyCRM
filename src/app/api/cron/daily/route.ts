@@ -18,7 +18,7 @@ function authorised(request: NextRequest) {
 /**
  * Vercel Cron, 22:00 UTC = 03:00 Asia/Karachi (see vercel.json).
  * Pulls yesterday's social metrics into social_metrics_daily and flags broken tokens.
- * Renewals, follow-ups and overdue invoices need no job: they're computed live.
+ * Renewals, payments to collect and follow-ups need no job: they're computed live.
  */
 export async function GET(request: NextRequest) {
   if (!authorised(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

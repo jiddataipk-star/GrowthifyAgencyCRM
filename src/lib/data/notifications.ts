@@ -1,17 +1,18 @@
 import "server-only";
 import type { ServerClient } from "@/lib/supabase/server";
 import { addDays, dueLabel, formatDayMonth, todayPK } from "@/lib/dates";
+import { renewalLabel } from "@/lib/collections";
 import { formatMoney } from "@/lib/money";
 import { PLATFORM_LABELS } from "@/lib/constants";
 import type { AppNotification } from "@/components/shell/notifications";
 
 /**
  * Notifications are derived live from the data (nothing to mark as read, never stale):
- * renewals due within 3 days, follow-ups due, overdue invoices, broken social connections.
+ * renewals due within 3 days, payments to collect that are due, follow-ups, broken social connections.
  */
 export async function loadNotifications(supabase: ServerClient): Promise<AppNotification[]> {
   const today = todayPK();
-  const [settings, renewals, followUps, invoices, social] = await Promise.all([
+  const [settings, renewals, followUps, dues, social] = await Promise.all([
     supabase.from("settings").select("notify_renewals, notify_followups, notify_overdue, notify_social").maybeSingle(),
     supabase
       .from("subscriptions")
@@ -28,10 +29,10 @@ export async function loadNotifications(supabase: ServerClient): Promise<AppNoti
       .order("next_follow_up")
       .limit(10),
     supabase
-      .from("invoices")
-      .select("id, number, total, amount_paid, currency, due_date, clients(business_name)")
-      .in("status", ["sent", "partial"])
-      .lt("due_date", today)
+      .from("dues")
+      .select("id, title, amount, amount_paid, currency, due_date, payer_name, clients(business_name)")
+      .eq("status", "pending")
+      .lte("due_date", today)
       .order("due_date")
       .limit(10),
     supabase.from("social_accounts").select("id, platform, name").eq("status", "needs_reconnect"),
@@ -46,21 +47,21 @@ export async function loadNotifications(supabase: ServerClient): Promise<AppNoti
         id: `renewal-${sub.id}`,
         kind: "renewal",
         title: `${sub.clients?.business_name ?? "Client"} · ${formatMoney(sub.amount, sub.currency)}`,
-        detail: `${sub.name} — ${dueLabel(sub.next_due_date, today)}`,
-        href: "/subscriptions?view=due",
-        urgent: sub.next_due_date < today,
+        detail: `${sub.name} — ${renewalLabel(sub.next_due_date, today)}`,
+        href: "/collections",
+        urgent: sub.next_due_date <= today,
       });
     }
   }
   if (prefs.notify_overdue) {
-    for (const inv of invoices.data ?? []) {
+    for (const due of dues.data ?? []) {
       items.push({
-        id: `invoice-${inv.id}`,
-        kind: "invoice",
-        title: `${inv.number} · ${inv.clients?.business_name ?? ""}`,
-        detail: `${formatMoney(inv.total - inv.amount_paid, inv.currency)} — ${dueLabel(inv.due_date, today)}`,
-        href: `/invoices/${inv.id}`,
-        urgent: true,
+        id: `due-${due.id}`,
+        kind: "due",
+        title: `${due.clients?.business_name ?? due.payer_name ?? "Payment"} · ${formatMoney(due.amount - due.amount_paid, due.currency)}`,
+        detail: `${due.title} — ${dueLabel(due.due_date, today)}`,
+        href: `/collections?due=${due.id}`,
+        urgent: due.due_date < today,
       });
     }
   }

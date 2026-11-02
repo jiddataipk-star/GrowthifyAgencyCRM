@@ -17,21 +17,22 @@ export async function GET(request: NextRequest) {
   if (error) return NextResponse.json({ error: "Export failed" }, { status: 500 });
 
   const csv = toCsv(
-    ["Date", "Type", "Amount", "Currency", "Tax withheld", "Category", "Method", "Reference / TID", "Description", "Client", "Project", "Invoice", "Employee", "Notes"],
+    ["Date", "Time", "Type", "Amount", "Currency", "From / to", "For", "Category", "Method", "Reference / TID", "Client", "Project", "Employee", "Screenshot", "Notes"],
     (data ?? []).map((tx) => [
       tx.date,
+      tx.time?.slice(0, 5),
       tx.type,
       (tx.type === "expense" ? -tx.amount : tx.amount) / 100,
       tx.currency,
-      tx.tax_withheld / 100,
+      tx.party_name,
+      tx.description,
       CATEGORY_LABELS[tx.category],
       METHOD_LABELS[tx.method],
       tx.reference,
-      tx.description,
       tx.clients?.business_name,
       tx.projects?.title,
-      tx.invoices?.number,
       tx.employees?.name,
+      tx.receipt_url ? "yes" : "",
       tx.notes,
     ]),
   );

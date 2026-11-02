@@ -17,10 +17,9 @@ const ENTITY: Record<string, string> = {
   clients: "client",
   leads: "lead",
   projects: "project",
-  milestones: "milestone",
+  dues: "payment request",
   subscriptions: "subscription",
   plans: "plan",
-  invoices: "invoice",
   transactions: "transaction",
   employees: "employee",
   settings: "settings",
@@ -53,7 +52,7 @@ export function ActivityFeed({ rows, actors }: { rows: ActivityRow[]; actors: Re
           <li key={row.id} className="flex gap-3 py-3">
             <span
               aria-hidden
-              className={`mt-1.5 size-2.5 shrink-0 rounded-full ${row.action === "delete" ? "bg-danger" : row.action === "create" ? "bg-success" : "bg-accent-fg"}`}
+              className={`mt-1.5 size-2.5 shrink-0 rounded-full ${row.action === "delete" ? "bg-danger" : row.action === "create" ? "bg-success" : "bg-primary"}`}
             />
             <div className="min-w-0 flex-1 text-sm">
               <p>

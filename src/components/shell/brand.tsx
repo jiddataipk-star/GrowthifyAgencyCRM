@@ -1,25 +1,20 @@
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 
-/** Full logo, switching file with the theme (final bright-lime assets, never recoloured). */
-export function Logo({ className, priority }: { className?: string; priority?: boolean }) {
+/**
+ * Final bright-lime brand files, never recoloured: the "on dark" logo sits on the
+ * dark-green frame, the "on light" logo on white pages (login, 404).
+ */
+export function Logo({ className, priority, onDark = true }: { className?: string; priority?: boolean; onDark?: boolean }) {
   return (
     <span className={cn("block", className)}>
       <Image
-        src="/brand/growthify-logo-on-dark.png"
+        src={onDark ? "/brand/growthify-logo-on-dark.png" : "/brand/growthify-logo-on-light.png"}
         alt="Growthify Agency"
         width={1600}
         height={560}
         priority={priority}
-        className="h-auto w-full light:hidden"
-      />
-      <Image
-        src="/brand/growthify-logo-on-light.png"
-        alt="Growthify Agency"
-        width={1600}
-        height={560}
-        priority={priority}
-        className="hidden h-auto w-full light:block"
+        className="h-auto w-full"
       />
     </span>
   );

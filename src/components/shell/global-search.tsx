@@ -4,15 +4,15 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Command } from "cmdk";
 import { Dialog } from "radix-ui";
-import { FileText, Filter, Folder, Loader2, Search, Users } from "lucide-react";
+import { Filter, Folder, HandCoins, Loader2, Search, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type Result = { kind: "client" | "project" | "invoice" | "lead"; id: string; title: string; subtitle: string | null };
+type Result = { kind: "client" | "project" | "due" | "lead"; id: string; title: string; subtitle: string | null };
 
 const KIND = {
   client: { label: "Clients", icon: Users, href: (id: string) => `/clients/${id}` },
   project: { label: "Projects", icon: Folder, href: (id: string) => `/projects/${id}` },
-  invoice: { label: "Invoices", icon: FileText, href: (id: string) => `/invoices/${id}` },
+  due: { label: "Payments to collect", icon: HandCoins, href: (id: string) => `/collections?due=${id}` },
   lead: { label: "Leads", icon: Filter, href: (id: string) => `/leads?lead=${id}` },
 } as const;
 
@@ -72,28 +72,28 @@ export function GlobalSearch({ className, finance, shortcut = false }: { classNa
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger
         className={cn(
-          "flex h-[50px] items-center gap-3 rounded-full bg-surface px-[22px] text-[15px] text-muted transition-colors hover:text-fg-2 light:bg-surface-2",
+          "flex h-10 items-center gap-2.5 rounded-full border border-line bg-surface-2 px-4 text-[13.5px] text-muted transition-colors hover:border-line-strong hover:text-fg-2",
           className,
         )}
       >
-        <Search className="size-5 shrink-0" aria-hidden />
-        <span className="truncate">{finance ? "Search clients, projects…" : "Search projects…"}</span>
-        <kbd className="ml-auto hidden rounded-md border border-line px-1.5 py-0.5 text-[11px] font-semibold text-muted 2xl:inline">
+        <Search className="size-4 shrink-0" aria-hidden />
+        <span className="truncate">{finance ? "Search clients, projects, dues…" : "Search projects…"}</span>
+        <kbd className="ml-auto hidden rounded-md border border-line bg-white px-1.5 py-0.5 text-[10.5px] font-semibold text-muted 2xl:inline">
           Ctrl K
         </kbd>
       </Dialog.Trigger>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 data-[state=open]:animate-[overlay-in_150ms_ease-out]" />
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-[#0b1210]/45 data-[state=open]:animate-[overlay-in_150ms_ease-out]" />
         <Dialog.Content className="fixed top-[12vh] left-1/2 z-50 w-[calc(100%-32px)] max-w-xl -translate-x-1/2 overflow-hidden rounded-card border border-line bg-surface shadow-pop data-[state=open]:animate-[content-in_150ms_ease-out]">
           <Dialog.Title className="sr-only">Search</Dialog.Title>
-          <Dialog.Description className="sr-only">Search clients, projects, invoices and leads</Dialog.Description>
+          <Dialog.Description className="sr-only">Search clients, projects, payments to collect and leads</Dialog.Description>
           <Command shouldFilter={false} label="Global search">
             <div className="flex items-center gap-3 border-b border-line px-5">
               {loading ? <Loader2 className="size-5 animate-spin text-muted" /> : <Search className="size-5 text-muted" />}
               <Command.Input
                 value={query}
                 onValueChange={setQuery}
-                placeholder="Type a client, project, invoice no. or lead…"
+                placeholder="Type a client, project, payment or lead…"
                 className="h-14 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted"
               />
             </div>
@@ -120,7 +120,7 @@ export function GlobalSearch({ className, finance, shortcut = false }: { classNa
                         onSelect={() => go(meta.href(item.id))}
                         className="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 data-[selected=true]:bg-surface-2"
                       >
-                        <Icon className="size-4 shrink-0 text-accent-fg" aria-hidden />
+                        <Icon className="size-4 shrink-0 text-primary" aria-hidden />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm font-semibold">{item.title}</span>
                           {item.subtitle ? <span className="block truncate text-xs text-muted">{item.subtitle}</span> : null}

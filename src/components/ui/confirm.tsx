@@ -29,9 +29,9 @@ export function Confirm({
   return (
     <AlertDialog.Root open={open} onOpenChange={onOpenChange}>
       <AlertDialog.Portal>
-        <AlertDialog.Overlay className="fixed inset-0 z-50 bg-black/60 data-[state=open]:animate-[overlay-in_150ms_ease-out]" />
+        <AlertDialog.Overlay className="fixed inset-0 z-50 bg-[#0b1210]/45 data-[state=open]:animate-[overlay-in_150ms_ease-out]" />
         <AlertDialog.Content className="fixed top-1/2 left-1/2 z-50 w-[calc(100%-32px)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-card border border-line bg-surface p-6 shadow-pop data-[state=open]:animate-[content-in_150ms_ease-out]">
-          <AlertDialog.Title className="text-card font-bold">{title}</AlertDialog.Title>
+          <AlertDialog.Title className="font-display text-[17px] font-bold">{title}</AlertDialog.Title>
           {description ? (
             <AlertDialog.Description className="mt-2 text-sm text-fg-2">{description}</AlertDialog.Description>
           ) : (

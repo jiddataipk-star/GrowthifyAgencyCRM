@@ -40,11 +40,11 @@ export function GoogleSignIn() {
   return (
     <div className="mt-8">
       {error ? (
-        <p role="alert" className="mb-4 rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm font-semibold text-danger">
+        <p role="alert" className="mb-4 rounded-xl border border-danger/30 bg-danger-tint px-4 py-3 text-sm font-semibold text-danger">
           {error}
         </p>
       ) : null}
-      <Button size="lg" className="w-full" onClick={signIn} loading={pending}>
+      <Button size="lg" variant="secondary" className="h-12 w-full text-[15px]" onClick={signIn} loading={pending}>
         {pending ? null : <GoogleMark />}
         Continue with Google
       </Button>

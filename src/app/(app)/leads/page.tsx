@@ -49,7 +49,7 @@ async function Leads({ searchParams }: { searchParams: SearchParams }) {
 
   return (
     <div className="flex flex-col gap-7">
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 wide:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-5 wide:grid-cols-4">
         <KpiCard icon={<Filter />} tone="info" label="Open leads" value={open.length} />
         <KpiCard icon={<Target />} tone="accent" label="Pipeline value" value={formatMoney(pipeline, "PKR")} sub="Open leads, estimated" subTone="muted" />
         <KpiCard icon={<CalendarClock />} tone="warning" label="Follow-ups due" value={due} sub={due ? "Today or overdue" : "You're up to date"} subTone={due ? "warning" : "success"} />

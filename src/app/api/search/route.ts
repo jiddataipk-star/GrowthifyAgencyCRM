@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getMember } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
-/** Global search (clients, projects, invoices, leads). The SQL function runs under the caller's RLS. */
+/** Global search (clients, projects, payments to collect, leads). The SQL function runs under the caller's RLS. */
 export async function GET(request: NextRequest) {
   const member = await getMember();
   if (!member) return NextResponse.json({ results: [] }, { status: 401 });

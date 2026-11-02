@@ -66,7 +66,7 @@ async function Clients({ searchParams }: { searchParams: SearchParams }) {
 
   return (
     <div className="flex flex-col gap-7">
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 wide:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-5 wide:grid-cols-4">
         <KpiCard icon={<UserCheck />} tone="success" label="Active clients" value={active.count ?? 0} />
         <KpiCard icon={<UserPlus />} tone="accent" label="New this month" value={fresh.count ?? 0} />
         <KpiCard icon={<Users />} tone="warning" label="Paused" value={paused.count ?? 0} />
@@ -125,7 +125,7 @@ async function Clients({ searchParams }: { searchParams: SearchParams }) {
                   <Card className="grid grid-cols-[auto_1fr_auto] items-center gap-x-4 gap-y-3 px-4 py-4 transition-colors hover:border-line-strong sm:px-5 lg:grid-cols-[auto_1.4fr_1fr_1fr_1fr_auto]">
                     <Avatar src={client.logo_url} name={client.business_name} size={56} square />
                     <div className="min-w-0">
-                      <Link href={`/clients/${client.id}`} className="block truncate text-[15px] font-bold hover:text-accent-fg">
+                      <Link href={`/clients/${client.id}`} className="block truncate text-[15px] font-bold hover:text-primary">
                         {client.business_name}
                       </Link>
                       <p className="truncate text-sm text-muted">{client.contact_name ?? "No contact person"}</p>

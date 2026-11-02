@@ -53,7 +53,7 @@ export function IntegrationsPanel({ accounts, configured }: { accounts: Integrat
 
       <section className="rounded-control border border-line p-5">
         <div className="flex flex-wrap items-start gap-4">
-          <span className="flex size-11 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-accent-fg"><KeyRound className="size-5" /></span>
+          <span className="flex size-11 items-center justify-center rounded-full bg-primary-tint text-primary"><KeyRound className="size-5" /></span>
           <div className="min-w-0 flex-1">
             <h3 className="text-card font-bold">Meta: Facebook Page + Instagram</h3>
             <p className="mt-1 text-sm text-fg-2">
@@ -106,8 +106,8 @@ export function IntegrationsPanel({ accounts, configured }: { accounts: Integrat
                       ? `${account.connection === "system_user" ? "System user" : account.connection === "manual" ? "Manual" : "OAuth"} · synced ${timeAgo(account.last_synced_at)}${account.token_expires_at ? ` · token until ${formatDateTime(account.token_expires_at)}` : ""}`
                       : HOW[account.platform]}
                   </p>
-                  {account.last_error ? <p className="mt-0.5 line-clamp-2 text-xs text-warning">{account.last_error}</p> : null}
-                  {expiresSoon ? <p className="mt-0.5 text-xs font-semibold text-warning">Token expires soon — the daily sync refreshes it automatically.</p> : null}
+                  {account.last_error ? <p className="mt-0.5 line-clamp-2 text-xs text-danger">{account.last_error}</p> : null}
+                  {expiresSoon ? <p className="mt-0.5 text-xs font-semibold text-fg">Token expires soon — the daily sync refreshes it automatically.</p> : null}
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-2">

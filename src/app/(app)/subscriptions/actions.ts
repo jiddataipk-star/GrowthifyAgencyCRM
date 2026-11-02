@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { action, must } from "@/lib/action";
-import { markPaidSchema, planSchema, subscriptionSchema } from "@/lib/validation";
+import { markPaidSchema, planSchema, startSubscriptionSchema, subscriptionSchema } from "@/lib/validation";
 import { toMinor } from "@/lib/money";
 import { emptyToNull } from "@/lib/utils";
 
@@ -12,6 +12,7 @@ function toRow(input: z.output<typeof subscriptionSchema>) {
     plan_id: emptyToNull(input.plan_id ?? ""),
     name: input.name,
     service_type: input.service_type,
+    service_ref: emptyToNull(input.service_ref ?? ""),
     amount: toMinor(input.amount),
     currency: input.currency,
     interval_months: input.interval_months,
@@ -25,6 +26,39 @@ function toRow(input: z.output<typeof subscriptionSchema>) {
 
 export const createSubscriptionAction = action("finance", subscriptionSchema, async (input, { supabase }) => {
   must(await supabase.from("subscriptions").insert(toRow(input)));
+});
+
+/** One step: (new) client + subscription + optional first payment — all or nothing. */
+export const startSubscriptionAction = action("finance", startSubscriptionSchema, async (input, { supabase }) => {
+  const id = must(
+    await supabase.rpc("start_subscription", {
+      p_data: {
+        client_id: input.client_id || "",
+        new_client: input.client_id
+          ? null
+          : { business_name: input.new_business_name ?? "", contact_name: input.new_contact_name ?? "", phone: input.new_phone ?? "", city: input.new_city ?? "" },
+        plan_id: input.plan_id || "",
+        name: input.name,
+        service_type: input.service_type,
+        amount: toMinor(input.amount),
+        currency: input.currency,
+        interval_months: input.interval_months,
+        start_date: input.start_date,
+        service_ref: input.service_ref ?? "",
+        notes: input.notes ?? "",
+        paid_now: input.paid_now,
+        payment: {
+          method: input.method,
+          reference: input.reference ?? "",
+          party_name: input.party_name ?? "",
+          paid_on: input.paid_on || input.start_date,
+          time: input.time ?? "",
+          receipt_url: input.receipt_url ?? "",
+        },
+      },
+    }),
+  );
+  return { id: id as string };
 });
 
 export const updateSubscriptionAction = action("finance", subscriptionSchema.extend({ id: z.guid() }), async ({ id, ...input }, { supabase }) => {
@@ -54,6 +88,8 @@ export const markSubscriptionPaidAction = action("finance", markPaidSchema, asyn
       p_receipt_url: input.receipt_url || undefined,
       p_amount: input.amount !== undefined ? toMinor(input.amount) : undefined,
       p_notes: input.notes || undefined,
+      p_time: input.time || undefined,
+      p_party_name: input.party_name || undefined,
     }),
   );
 });

@@ -60,7 +60,7 @@ export function FilesPanel({ entity, entityId, files }: { entity: "client" | "pr
         <ul className="divide-y divide-line">
           {files.map((file) => (
             <li key={file.id} className="flex items-center gap-3 py-3">
-              <FileText className="size-5 shrink-0 text-accent-fg" aria-hidden />
+              <FileText className="size-5 shrink-0 text-primary" aria-hidden />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold">{file.name}</p>
                 <p className="text-xs text-muted">

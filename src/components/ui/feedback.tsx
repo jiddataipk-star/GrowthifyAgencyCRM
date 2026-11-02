@@ -36,7 +36,7 @@ export function EmptyState({
       <IconCircle tone="accent" size={compact ? "md" : "lg"}>
         {icon ?? <Inbox />}
       </IconCircle>
-      <p className={cn("mt-4 font-bold", compact ? "text-[15px]" : "text-card")}>{title}</p>
+      <p className={cn("font-display mt-4 font-bold", compact ? "text-[15px]" : "text-[17px]")}>{title}</p>
       {description ? <p className="mt-1.5 max-w-sm text-sm text-fg-2">{description}</p> : null}
       {action ? <div className="mt-5">{action}</div> : null}
     </div>
@@ -50,7 +50,7 @@ export function ErrorState({ title = "Couldn't load this", description, action }
         <IconCircle tone="danger">
           <AlertTriangle />
         </IconCircle>
-        <p className="mt-4 text-card font-bold">{title}</p>
+        <p className="font-display mt-4 text-[17px] font-bold">{title}</p>
         <p className="mt-1.5 max-w-md text-sm text-fg-2">{description ?? "Something went wrong while loading. Check your connection and try again."}</p>
         {action ? <div className="mt-5">{action}</div> : null}
       </div>
@@ -66,7 +66,7 @@ export function PageSkeleton({ kpis = 4, rows = 6 }: { kpis?: number; rows?: num
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: kpis }, (_, i) => (
             <Card key={i} className="flex items-center gap-4">
-              <Skeleton className="size-[58px] rounded-full" />
+              <Skeleton className="size-12 rounded-full" />
               <div className="flex-1 space-y-2">
                 <Skeleton className="h-3 w-24" />
                 <Skeleton className="h-5 w-32" />

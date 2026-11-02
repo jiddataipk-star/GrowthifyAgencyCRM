@@ -3,10 +3,10 @@
 import * as React from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Database, Laptop, LogOut, Moon, Pencil, Plus, Smartphone, Sun, Trash2 } from "lucide-react";
+import { Database, Laptop, LogOut, Pencil, Plus, Smartphone, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { billingSchema, companySchema, inviteSchema, planSchema, preferencesSchema, profileSchema, serviceSchema } from "@/lib/validation";
+import { companySchema, inviteSchema, paymentDetailsSchema, planSchema, preferencesSchema, profileSchema, serviceSchema } from "@/lib/validation";
 import { INTERVAL_LABELS, PAKISTAN_CITIES, ROLE_LABELS, SERVICE_TYPE_LABELS, currencyOptions, intervalOptions, roleOptions, serviceTypeOptions } from "@/lib/constants";
 import { formatMoney } from "@/lib/money";
 import { formatDateTime } from "@/lib/dates";
@@ -20,7 +20,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Pill } from "@/components/ui/pill";
 import { LogoInput } from "@/components/app/upload";
 import { applyFieldErrors } from "@/components/app/form-utils";
-import { setTheme, useTheme } from "@/components/shell/theme";
+import { paymentDetailsText } from "@/components/app/domain";
 import { savePlanAction, deletePlanAction } from "../subscriptions/actions";
 import {
   clearDemoDataAction,
@@ -29,7 +29,7 @@ import {
   loadDemoDataAction,
   removeMemberAction,
   revokeSessionAction,
-  saveBillingAction,
+  savePaymentDetailsAction,
   saveCompanyAction,
   savePreferencesAction,
   saveProfileAction,
@@ -103,7 +103,7 @@ export function CompanyForm({ settings, canEdit }: { settings: Tables<"settings"
           <Field label="Phone" htmlFor="co-phone" error={errors.phone?.message}>
             <Input inputMode="tel" {...register("phone")} />
           </Field>
-          <Field label="WhatsApp API number (internal)" htmlFor="co-wa" error={errors.whatsapp_number?.message} hint="Not printed on invoices unless you enable it under Billing.">
+          <Field label="Business WhatsApp (internal)" htmlFor="co-wa" error={errors.whatsapp_number?.message} hint="For your records; not sent to clients.">
             <Input inputMode="tel" {...register("whatsapp_number")} />
           </Field>
           <Field label="Website" htmlFor="co-web" error={errors.website?.message}>
@@ -126,70 +126,56 @@ export function CompanyForm({ settings, canEdit }: { settings: Tables<"settings"
   );
 }
 
-export function BillingForm({ settings, canEdit }: { settings: Tables<"settings">; canEdit: boolean }) {
+export function PaymentDetailsForm({ settings, canEdit }: { settings: Tables<"settings">; canEdit: boolean }) {
   const notify = useSaveToast();
-  type Values = z.input<typeof billingSchema>;
-  const { register, handleSubmit, formState, control, setError } = useForm<Values>({
-    resolver: zodResolver(billingSchema) as never,
+  type Values = z.input<typeof paymentDetailsSchema>;
+  const { register, handleSubmit, formState, setError, watch } = useForm<Values>({
+    resolver: zodResolver(paymentDetailsSchema) as never,
     defaultValues: {
-      ntn: settings.ntn ?? "",
-      strn: settings.strn ?? "",
       bank_name: settings.bank_name ?? "",
       account_title: settings.account_title ?? "",
       account_number: settings.account_number ?? "",
       iban: settings.iban ?? "",
-      wallet_details: settings.wallet_details ?? "",
+      jazzcash_number: settings.jazzcash_number ?? "",
+      easypaisa_number: settings.easypaisa_number ?? "",
+      raast_id: settings.raast_id ?? "",
       payment_notes: settings.payment_notes ?? "",
-      invoice_prefix: settings.invoice_prefix,
-      default_tax_rate: Number(settings.default_tax_rate),
-      default_due_days: settings.default_due_days,
-      invoice_footer: settings.invoice_footer ?? "",
-      show_whatsapp_on_invoice: settings.show_whatsapp_on_invoice,
     },
   });
   const errors = formState.errors;
+  const preview = paymentDetailsText({ ...watch(), company_name: settings.company_name });
   return (
     <form
       noValidate
       onSubmit={handleSubmit(async (values) => {
-        const result = await saveBillingAction(values);
+        const result = await savePaymentDetailsAction(values);
         applyFieldErrors(result.ok ? undefined : result.fieldErrors, setError);
-        notify(result, "Billing details saved");
+        notify(result, "Payment details saved");
       })}
+      className="grid grid-cols-1 gap-8 xl:grid-cols-[1fr_320px]"
     >
-      {!canEdit ? <p className="mb-5 rounded-xl bg-surface-2 px-4 py-3 text-sm text-fg-2">Only the owner can change billing details.</p> : null}
-      <fieldset disabled={!canEdit}>
-        <FormGrid>
-          <Field label="Bank name" htmlFor="b-bank"><Input placeholder="e.g. Meezan Bank" {...register("bank_name")} /></Field>
-          <Field label="Account title" htmlFor="b-title"><Input {...register("account_title")} /></Field>
-          <Field label="Account number" htmlFor="b-acc"><Input {...register("account_number")} /></Field>
-          <Field label="IBAN" htmlFor="b-iban" error={errors.iban?.message}><Input placeholder="PK36SCBL0000001123456702" {...register("iban")} /></Field>
-          <Field label="JazzCash / Easypaisa / Raast" htmlFor="b-wallet" hint="Wallet numbers or Raast ID shown on invoices." className="sm:col-span-2">
-            <Input placeholder="JazzCash: 0300-0000000 · Raast ID: …" {...register("wallet_details")} />
-          </Field>
-          <Field label="NTN" htmlFor="b-ntn"><Input {...register("ntn")} /></Field>
-          <Field label="STRN (sales tax)" htmlFor="b-strn"><Input {...register("strn")} /></Field>
-          <Field label="Invoice prefix" htmlFor="b-prefix" error={errors.invoice_prefix?.message} hint="GA → GA-2026-0001"><Input {...register("invoice_prefix")} /></Field>
-          <Field label="Default sales tax (%)" htmlFor="b-tax" error={errors.default_tax_rate?.message}><Input type="number" min="0" max="100" step="0.01" {...register("default_tax_rate")} /></Field>
-          <Field label="Default payment terms (days)" htmlFor="b-due" error={errors.default_due_days?.message}><Input type="number" min="0" max="120" {...register("default_due_days")} /></Field>
-          <Field label="Invoice footer" htmlFor="b-footer"><Input placeholder="We build the systems your business runs on." {...register("invoice_footer")} /></Field>
-          <Field label="Payment instructions" htmlFor="b-notes" className="sm:col-span-2"><Textarea rows={2} placeholder="e.g. Please share the TID on WhatsApp after paying." {...register("payment_notes")} /></Field>
-          <Controller
-            control={control}
-            name="show_whatsapp_on_invoice"
-            render={({ field }) => (
-              <label className="flex items-center justify-between gap-4 rounded-control border border-line p-4 sm:col-span-2">
-                <span>
-                  <span className="block font-semibold">Print WhatsApp number on invoices</span>
-                  <span className="text-sm text-muted">Off by default: the internal API number stays private.</span>
-                </span>
-                <Switch checked={field.value} onCheckedChange={field.onChange} aria-label="Print WhatsApp number on invoices" />
-              </label>
-            )}
-          />
-        </FormGrid>
-      </fieldset>
-      {canEdit ? <FormFooter pending={formState.isSubmitting} /> : null}
+      <div>
+        {!canEdit ? <p className="mb-5 rounded-xl bg-surface-2 px-4 py-3 text-sm text-fg-2">Only the owner can change payment details.</p> : null}
+        <fieldset disabled={!canEdit}>
+          <FormGrid>
+            <Field label="Bank name" htmlFor="b-bank"><Input placeholder="e.g. Meezan Bank" {...register("bank_name")} /></Field>
+            <Field label="Account title" htmlFor="b-title"><Input placeholder="GROWTHIFY AGENCY" {...register("account_title")} /></Field>
+            <Field label="Account number" htmlFor="b-acc"><Input {...register("account_number")} /></Field>
+            <Field label="IBAN" htmlFor="b-iban" error={errors.iban?.message}><Input placeholder="PK36SCBL0000001123456702" {...register("iban")} /></Field>
+            <Field label="JazzCash number" htmlFor="b-jazz" error={errors.jazzcash_number?.message}><Input inputMode="tel" placeholder="03XX-XXXXXXX" {...register("jazzcash_number")} /></Field>
+            <Field label="Easypaisa number" htmlFor="b-easy" error={errors.easypaisa_number?.message}><Input inputMode="tel" placeholder="03XX-XXXXXXX" {...register("easypaisa_number")} /></Field>
+            <Field label="Raast ID" htmlFor="b-raast"><Input placeholder="Mobile number or Raast ID" {...register("raast_id")} /></Field>
+            <Field label="Extra line" htmlFor="b-notes" hint="e.g. “Payments in the name of Ahmad” or bank branch"><Input {...register("payment_notes")} /></Field>
+          </FormGrid>
+        </fieldset>
+        {canEdit ? <FormFooter pending={formState.isSubmitting} /> : null}
+      </div>
+      <aside className="rounded-card border border-line bg-canvas p-4">
+        <p className="text-[12.5px] font-semibold text-muted">Preview — added to every WhatsApp payment reminder</p>
+        <pre className="mt-3 rounded-xl bg-white p-3.5 font-sans text-[13px] leading-relaxed whitespace-pre-wrap text-fg shadow-card">
+          {`Assalam o Alaikum, a gentle reminder for Website advance: PKR 50,000 (due 5 Nov).${preview}\n\nPlease share the screenshot after payment. JazakAllah! — ${settings.company_name}`}
+        </pre>
+      </aside>
     </form>
   );
 }
@@ -197,7 +183,6 @@ export function BillingForm({ settings, canEdit }: { settings: Tables<"settings"
 /* ── Preferences ───────────────────────────────────────────────────────── */
 export function PreferencesForm({ settings, canEdit }: { settings: Tables<"settings">; canEdit: boolean }) {
   const notify = useSaveToast();
-  const theme = useTheme();
   type Values = z.input<typeof preferencesSchema>;
   const { register, handleSubmit, formState, control } = useForm<Values>({
     resolver: zodResolver(preferencesSchema) as never,
@@ -213,36 +198,11 @@ export function PreferencesForm({ settings, canEdit }: { settings: Tables<"setti
   const toggles: { name: keyof Values; title: string; text: string }[] = [
     { name: "notify_renewals", title: "Renewals due", text: "Subscriptions due within 3 days, and overdue ones." },
     { name: "notify_followups", title: "Lead follow-ups", text: "Leads whose follow-up date is today or past." },
-    { name: "notify_overdue", title: "Overdue invoices", text: "Sent invoices past their due date." },
+    { name: "notify_overdue", title: "Overdue payments", text: "Payments to collect that are past their date." },
     { name: "notify_social", title: "Social connection problems", text: "When a platform needs reconnecting." },
   ];
   return (
     <div className="space-y-8">
-      <section>
-        <h3 className="mb-1 text-card font-bold">Theme</h3>
-        <p className="mb-4 text-sm text-muted">Saved on this device. Dark is the Growthify default.</p>
-        <div role="radiogroup" aria-label="Theme" className="grid max-w-md grid-cols-2 gap-3">
-          {(["dark", "light"] as const).map((value) => (
-            <button
-              key={value}
-              type="button"
-              role="radio"
-              aria-checked={theme === value}
-              onClick={() => setTheme(value)}
-              className={cn(
-                "flex items-center gap-3 rounded-control border p-4 text-left font-semibold transition-colors",
-                theme === value ? "border-accent-fg bg-surface-2" : "border-line hover:border-line-strong",
-              )}
-            >
-              <span className={cn("flex size-10 items-center justify-center rounded-full", value === "dark" ? "bg-[#06140e] text-[#c8ff40]" : "bg-white text-[#0f2b20] ring-1 ring-[#e3ece7]")}>
-                {value === "dark" ? <Moon className="size-5" /> : <Sun className="size-5" />}
-              </span>
-              {value === "dark" ? "Dark" : "Light"}
-            </button>
-          ))}
-        </div>
-      </section>
-
       <form
         noValidate
         onSubmit={handleSubmit(async (values) => {
@@ -250,7 +210,7 @@ export function PreferencesForm({ settings, canEdit }: { settings: Tables<"setti
         })}
       >
         <fieldset disabled={!canEdit}>
-          <h3 className="mb-4 text-card font-bold">Regional</h3>
+          <h3 className="mb-4 font-display text-card font-bold">Regional</h3>
           <FormGrid>
             <Field label="Reporting currency" htmlFor="p-currency" hint="Dashboards report PKR; USD is always shown separately, never converted.">
               <Select options={currencyOptions} {...register("default_currency")} />
@@ -259,7 +219,7 @@ export function PreferencesForm({ settings, canEdit }: { settings: Tables<"setti
               <Select options={[{ value: "Asia/Karachi", label: "Asia/Karachi (PKT, UTC+5)" }]} {...register("timezone")} />
             </Field>
           </FormGrid>
-          <h3 className="mt-8 mb-4 text-card font-bold">Notifications</h3>
+          <h3 className="mt-8 mb-4 font-display text-card font-bold">Notifications</h3>
           <ul className="divide-y divide-line rounded-control border border-line">
             {toggles.map((toggle) => (
               <li key={toggle.name} className="flex items-center justify-between gap-4 px-4 py-4">
@@ -333,7 +293,7 @@ export function SessionsList({ sessions }: { sessions: SessionRow[] }) {
   const [confirm, setConfirm] = React.useState(false);
   return (
     <div>
-      <h3 className="mb-1 text-card font-bold">Active sessions</h3>
+      <h3 className="mb-1 font-display text-card font-bold">Active sessions</h3>
       <p className="mb-4 text-sm text-muted">Devices signed in to your account. Sign-in is Google-only; manage 2-step verification in your Google account.</p>
       <ul className="divide-y divide-line rounded-control border border-line">
         {sessions.length === 0 ? <li className="px-4 py-6 text-sm text-muted">No session details available.</li> : null}
@@ -341,7 +301,7 @@ export function SessionsList({ sessions }: { sessions: SessionRow[] }) {
           const agent = describeAgent(session.user_agent);
           return (
             <li key={session.id} className="flex items-center gap-4 px-4 py-4">
-              <span className="flex size-10 items-center justify-center rounded-full bg-surface-2 text-accent-fg">
+              <span className="flex size-10 items-center justify-center rounded-full bg-surface-2 text-primary">
                 {agent.mobile ? <Smartphone className="size-5" /> : <Laptop className="size-5" />}
               </span>
               <div className="min-w-0 flex-1">
@@ -420,7 +380,7 @@ export function TeamManager({ members, meId, canManage }: { members: MemberRow[]
           })}
           className="rounded-control border border-line p-5"
         >
-          <h3 className="mb-1 text-card font-bold">Invite by Google email</h3>
+          <h3 className="mb-1 font-display text-card font-bold">Invite by Google email</h3>
           <p className="mb-4 text-sm text-muted">They sign in at this app with “Continue with Google”. No email is sent — share the link yourself.</p>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-[1.4fr_1fr_160px_auto] md:items-end">
             <Field label="Google email" htmlFor="inv-email" error={formState.errors.email?.message}>
@@ -502,7 +462,7 @@ export function CatalogManager({ services, plans, canDelete }: { services: Table
       <section>
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h3 className="text-card font-bold">Services</h3>
+            <h3 className="font-display text-card font-bold">Services</h3>
             <p className="text-sm text-muted">What Growthify sells. Used in projects and leads.</p>
           </div>
           <ServiceDialog trigger={<Button size="sm" variant="secondary"><Plus /> Add</Button>} />
@@ -527,7 +487,7 @@ export function CatalogManager({ services, plans, canDelete }: { services: Table
       <section>
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h3 className="text-card font-bold">Subscription plans</h3>
+            <h3 className="font-display text-card font-bold">Subscription plans</h3>
             <p className="text-sm text-muted">Monthly packages. A subscription can override the amount.</p>
           </div>
           <PlanDialog trigger={<Button size="sm" variant="secondary"><Plus /> Add</Button>} />
@@ -538,7 +498,7 @@ export function CatalogManager({ services, plans, canDelete }: { services: Table
               <div className="min-w-0 flex-1">
                 <p className="truncate font-semibold">{plan.name}</p>
                 <p className="text-xs text-muted">
-                  {INTERVAL_LABELS[plan.interval_months]} · {plan.amount ? formatMoney(plan.amount, plan.currency) : <span className="font-semibold text-warning">Set a price</span>}
+                  {INTERVAL_LABELS[plan.interval_months]} · {plan.amount ? formatMoney(plan.amount, plan.currency) : <span className="font-semibold text-danger">Set a price</span>}
                 </p>
               </div>
               <PlanDialog plan={plan} trigger={<button type="button" className="rounded-full p-2 text-muted hover:text-fg" aria-label={`Edit ${plan.name}`}><Pencil className="size-4" /></button>} />
@@ -669,9 +629,9 @@ function PlanDialog({ plan, trigger }: { plan?: Tables<"plans">; trigger: React.
 export function DemoDataCard({ loaded }: { loaded: number }) {
   const [confirm, setConfirm] = React.useState<null | "load" | "clear">(null);
   return (
-    <div className="rounded-control border border-dashed border-warning/60 p-5">
+    <div className="rounded-control border border-dashed border-line-strong bg-canvas p-5">
       <div className="flex flex-wrap items-center gap-4">
-        <span className="flex size-11 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--warning)_15%,transparent)] text-warning"><Database className="size-5" /></span>
+        <span className="flex size-11 items-center justify-center rounded-full bg-primary-tint text-primary"><Database className="size-5" /></span>
         <div className="min-w-0 flex-1">
           <p className="font-bold">Demo data</p>
           <p className="text-sm text-muted">
