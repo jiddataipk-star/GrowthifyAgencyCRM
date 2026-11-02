@@ -1,0 +1,202 @@
+@import "tailwindcss";
+
+/* `light:` utilities apply when the light theme is active. */
+@custom-variant light (&:where([data-theme="light"], [data-theme="light"] *));
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Growthify OS design tokens
+   Dark is the brand default. Values follow the brief's style frame; muted,
+   danger, success and warning were tuned so text passes WCAG AA (≥ 4.5:1).
+   ───────────────────────────────────────────────────────────────────────────── */
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0a1c14;
+  --sidebar: #06140e;
+  --surface: #0f2b20;
+  --surface-2: #133526;
+  --surface-3: #18402e;
+  --border: #1c3d2e;
+  --border-strong: #2a5442;
+  --text: #ffffff;
+  --text-2: #a9bdb2;
+  --muted: #809b8d;
+  --accent: #c8ff40;
+  --accent-ink: #07150f;
+  --accent-fg: #c8ff40; /* accent used as text/icon */
+  --primary: #c8ff40; /* primary button fill */
+  --primary-ink: #07150f;
+  --success: #3ddc97;
+  --danger: #f26b4f;
+  --warning: #f5b841;
+  --info: #8fb7ff;
+  --chart-1: #c8ff40;
+  --chart-2: #3ddc97;
+  --chart-3: #ffffff;
+  --chart-4: #4e7a64;
+  --chart-grid: #1c3d2e;
+  --shadow-pop: 0 18px 48px -12px rgb(0 0 0 / 0.55);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f4f7f5;
+  --sidebar: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #eef3f0;
+  --surface-3: #e5ece8;
+  --border: #e3ece7;
+  --border-strong: #cddad3;
+  --text: #07150f;
+  --text-2: #4f6258;
+  --muted: #5f7268;
+  --accent: #c8ff40; /* lime only as a fill with dark text — never text on white */
+  --accent-ink: #07150f;
+  --accent-fg: #0f2b20;
+  --primary: #0f2b20;
+  --primary-ink: #ffffff;
+  --success: #087a54;
+  --danger: #c9401f;
+  --warning: #9a6a07;
+  --info: #2f6fe0;
+  --chart-1: #0f2b20;
+  --chart-2: #12a877;
+  --chart-3: #8dbf1f;
+  --chart-4: #9fb5aa;
+  --chart-grid: #e3ece7;
+  --shadow-pop: 0 18px 48px -16px rgb(7 21 15 / 0.22);
+}
+
+@theme inline {
+  --font-sans: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+
+  --color-background: var(--bg);
+  --color-sidebar: var(--sidebar);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-fg: var(--text);
+  --color-fg-2: var(--text-2);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-fg: var(--accent-fg);
+  --color-primary: var(--primary);
+  --color-primary-ink: var(--primary-ink);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+
+  /* Desktop layouts with the full 250px sidebar (1440 design width). */
+  --breakpoint-wide: 87.5rem;
+
+  --radius-card: 20px;
+  --radius-control: 14px;
+
+  --shadow-pop: var(--shadow-pop);
+
+  --text-page: 28px;
+  --text-page--line-height: 1.2;
+  --text-section: 22px;
+  --text-section--line-height: 1.25;
+  --text-card: 18px;
+  --text-card--line-height: 1.3;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  ::selection {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+  /* Visible, on-brand keyboard focus everywhere. */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  :root[data-theme="light"] :focus-visible {
+    outline-color: var(--primary);
+    box-shadow: 0 0 0 4px var(--accent);
+  }
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="month"]::-webkit-calendar-picker-indicator {
+    opacity: 0.7;
+    cursor: pointer;
+  }
+  :root[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator,
+  :root[data-theme="dark"] input[type="month"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+  }
+  /* Thin, quiet scrollbars */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+}
+
+@layer utilities {
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes content-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+@keyframes sheet-in {
+  from {
+    transform: translateX(-100%);
+  }
+}
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
